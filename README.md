@@ -1,10 +1,15 @@
 # SyncLyrics
 
-A Gtk application to display lyrics of the song on the Spotify
+Displays the lyrics of the currently played song on the Spotify. Works for Linux
 
 <p align=center> 
     <img src="assets/screenshot.png">
 </p>
+
+## Features
+* Automatically retrieve the lyrics of the current song
+* Pin the window so it doesn't fall back of other programs
+* Change light/dark color modes
 
 ## Installation
 
