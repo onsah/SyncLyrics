@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=SyncLyrics
+GenericName=Synronize Lyrics from Spotify
+Comment=Synronize Lyrics from Spotify
+Categories=Music;
+Exec=com.github.onsah.sync-lyrics
+Icon=application-default-icon
+Terminal=false
+Type=Application
+Keywords=Lyrics;Spotify;

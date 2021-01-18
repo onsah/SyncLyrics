@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema path="/com/github/onsah/sync-lyrics/" id="com.github.onsah.sync-lyrics">
+    <key name="api-key" type="s">
+      <default>''</default>
+      <summary>Api key to make lyric requrests from happi.dev</summary>
+      <description>Api key to make lyric requrests from happi.dev</description>
+    </key>
+  </schema>
+</schemalist>
