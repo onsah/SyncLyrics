@@ -2,7 +2,9 @@
 
 A Gtk application to display lyrics of the song on the Spotify
 
-![](assets/screenshot.png)
+<p align=center> 
+    <img src="assets/screenshot.png">
+</p>
 
 ## Installation
 
