@@ -3,7 +3,7 @@
 Displays the lyrics of the currently played song on the Spotify. Works for Linux
 
 <p align="center">
-    <a href="">
+    <a href="https://github.com/onsah/SyncLyrics/releases">
         <img alt="Get the .deb" src="assets/deb.svg">
     </a>
 </p>
@@ -25,7 +25,7 @@ In the first opening, you need to provide an api key from [here](https://happi.d
 
 ### From Binary
 
-Download the `.deb` package from [here]()
+Download the `.deb` package from [here](https://github.com/onsah/SyncLyrics/releases)
 
 Run
 ```
