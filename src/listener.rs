@@ -1,11 +1,11 @@
-use dbus::blocking::Connection;
+use dbus::blocking::{stdintf::org_freedesktop_dbus::Properties, Connection};
 use dbus::{
     arg::{self, RefArg},
     Message,
 };
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::{collections::HashMap, thread::sleep};
 
 pub struct Listener {
     connection: Connection,
@@ -98,74 +98,87 @@ impl Listener {
         }
     }
 
-    pub fn connect_signal(&self, song_info: Arc<Mutex<SongInfo>>) {
+    pub fn connect_signal_blocking(&self, song_info: Arc<Mutex<SongInfo>>) {
+        while !self.connect_signal(Arc::clone(&song_info)).is_some() {
+            sleep(Duration::from_millis(250));
+        }
+    }
+
+    fn connect_signal(&self, song_info: Arc<Mutex<SongInfo>>) -> Option<()> {
         let proxy = self.connection.with_proxy(
             "org.mpris.MediaPlayer2.spotify",
             "/org/mpris/MediaPlayer2",
             Duration::from_millis(5000),
         );
 
-        // TODO: retrieve current info
-        use dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
-        let mut metadata: HashMap<String, arg::Variant<Box<dyn arg::RefArg>>> = proxy
-            .get("org.mpris.MediaPlayer2.Player", "Metadata")
-            .unwrap();
-        let title = metadata
-            .remove("xesam:title")
-            .map(|s| s.as_str().unwrap().to_owned());
-        // r/programminghorror
-        let artist = metadata.remove("xesam:artist").map(|s| {
-            s.as_iter()
-                .unwrap()
-                .next()
-                .unwrap()
-                .as_iter()
-                .unwrap()
-                .next()
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .to_owned()
-        });
-        match (title, artist) {
-            (Some(song_title), Some(artist_name)) => match song_info.try_lock() {
-                Ok(mut guard) => {
-                    if &guard.song_title != &song_title {
-                        *guard = SongInfo {
-                            song_title,
-                            artist_name,
-                            pull_lyrics: None,
-                        }
-                    }
-                }
-                _ => (),
-            },
-            _ => (),
-        }
+        let metadata_res: Result<HashMap<String, arg::Variant<Box<dyn arg::RefArg>>>, _> =
+            proxy.get("org.mpris.MediaPlayer2.Player", "Metadata");
 
-        {
-            let song_info = Arc::clone(&song_info);
-            let _id =
-                proxy.match_signal(move |p: PropertiesChanged, _: &Connection, _: &Message| {
-                    println!("{:#?} - {:#?}", p.title, p.artist);
-                    match (p.title, p.artist) {
-                        (Some(song_title), Some(artist_name)) => match song_info.try_lock() {
-                            Ok(mut guard) => {
-                                if &guard.song_title != &song_title {
-                                    println!("song changed to: {}", song_title);
-                                    *guard = SongInfo {
-                                        song_title,
-                                        artist_name,
-                                        pull_lyrics: None,
-                                    }
+        match metadata_res {
+            Ok(mut metadata) => {
+                // we need to wait a little bit otherwise data my not be available causing panic
+                sleep(Duration::from_millis(50));
+
+                let title: Option<String> = metadata
+                    .remove("xesam:title")
+                    .and_then(|s| Some(s.as_str()?.to_owned()));
+                // r/programminghorror
+                let artist: Option<String> = metadata.remove("xesam:artist").and_then(|s| {
+                        Some(
+                            s.as_iter()?
+                                .next()?
+                                .as_iter()?
+                                .next()?
+                                .as_str()?
+                                .to_owned()
+                        )
+                    });
+                match (title, artist) {
+                    (Some(song_title), Some(artist_name)) => match song_info.try_lock() {
+                        Ok(mut guard) => {
+                            if &guard.song_title != &song_title {
+                                *guard = SongInfo {
+                                    song_title,
+                                    artist_name,
+                                    pull_lyrics: None,
                                 }
                             }
-                            _ => (),
-                        },
+                        }
                         _ => (),
-                    }
-                    true
-                });
+                    },
+                    _ => (),
+                }
+
+                {
+                    let song_info = Arc::clone(&song_info);
+                    let _id = proxy.match_signal(
+                        move |p: PropertiesChanged, _: &Connection, _: &Message| {
+                            println!("{:#?} - {:#?}", p.title, p.artist);
+                            match (p.title, p.artist) {
+                                (Some(song_title), Some(artist_name)) => match song_info.try_lock()
+                                {
+                                    Ok(mut guard) => {
+                                        if &guard.song_title != &song_title {
+                                            println!("song changed to: {}", song_title);
+                                            *guard = SongInfo {
+                                                song_title,
+                                                artist_name,
+                                                pull_lyrics: None,
+                                            }
+                                        }
+                                    }
+                                    _ => (),
+                                },
+                                _ => (),
+                            }
+                            true
+                        },
+                    );
+                }
+
+                Some(())
+            }
+            _ => None,
         }
     }
 
@@ -183,8 +196,7 @@ mod tests {
         let song_info = Arc::from(Mutex::from(SongInfo::default()));
         let listener = Listener::new();
 
-        let _ = listener.connect_signal(song_info);
-        println!("connected");
+        assert!(listener.connect_signal(song_info).is_some());
         Ok(())
     }
 }

@@ -95,11 +95,11 @@ impl LyricsFetcher for HappiLyrics {
 
 #[cfg(test)]
 mod tests {
-    use super::HappiLyrics;
+    /* use super::HappiLyrics;
     use crate::lyrics::LyricsFetcher;
 
     const API_KEY: &'static str = "";
-    /*  You can uncomment these if you provide api key
+     You can uncomment these if you provide api key
     #[test]
     fn search_works() {
         let happi = HappiLyrics::new(API_KEY.into());

@@ -1,13 +1,12 @@
-use std::{
-    sync::{Arc, Mutex},
-    thread::{sleep, spawn},
-    time::Duration,
-    unreachable,
-};
 use glib::Continue;
 use gtk::{
     Adjustment, ApplicationWindow, ContainerExt, DialogExt, DialogFlags, EntryExt, GtkWindowExt,
     LabelExt, MessageType, WidgetExt,
+};
+use std::{
+    sync::{Arc, Mutex},
+    thread::{sleep, spawn},
+    time::Duration, unreachable,
 };
 
 use crate::{
@@ -86,7 +85,11 @@ impl LyricsApplication {
         glib::timeout_add_local(250, move || {
             match song_info.try_lock() {
                 Ok(song_info) => {
-                    self.update(&song_info);
+                    if song_info.song_title != self.title_label.get_text()
+                        || song_info.artist_name != self.artist_label.get_text()
+                    {
+                        self.update(&song_info);
+                    }
                 }
                 Err(e) => println!("Error: {:?}", e),
             }
@@ -99,7 +102,6 @@ impl LyricsApplication {
         let settings = Settings::new();
 
         let api_key = settings.get_api_key();
-        println!("api key: {}", api_key);
         let has_api_key = api_key != "";
 
         if !has_api_key {
@@ -129,7 +131,7 @@ impl LyricsApplication {
 
             dialog.connect_close(move |_| {
                 let api_key = api_label.get_text();
-                Self::start_listening_spotify(Arc::clone(&song_info), api_key.as_str());
+                Self::start_listening(Arc::clone(&song_info), api_key.as_str());
 
                 let settings = Settings::new();
                 settings.set_api_key(api_label.get_text().as_str());
@@ -139,49 +141,55 @@ impl LyricsApplication {
         } else {
             let settings = Settings::new();
             let api_key = settings.get_api_key();
-            Self::start_listening_spotify(Arc::clone(&song_info), api_key.as_str());
+            Self::start_listening(Arc::clone(&song_info), api_key.as_str());
         }
     }
 
-    fn start_listening_spotify(song_info: Arc<Mutex<SongInfo>>, api_key: &str) {
-        let mut listen = Listener::new();
+    /**
+     * Listens currently played song. If it changes it retrieves its lyrics as well
+     */
+    fn start_listening(song_info: Arc<Mutex<SongInfo>>, api_key: &str) {
+        let api_key: String = api_key.into();
 
-        listen.connect_signal(Arc::clone(&song_info));
+        spawn(move || {
+            let mut listen = Listener::new();
 
-        println!("Api key: {}", api_key);
-        let lyrics_fetcher = HappiLyrics::new(api_key.into());
+            listen.connect_signal_blocking(Arc::clone(&song_info));
 
-        {
-            let song_info = Arc::clone(&song_info);
-            // Listen to spotify changes
-            spawn(move || loop {
-                listen.listen();
+            let lyrics_fetcher = HappiLyrics::new(api_key);
 
-                let song_info = song_info.try_lock();
+            {
+                let song_info = Arc::clone(&song_info);
+                // Listen to spotify changes
+                loop {
+                    listen.listen();
 
-                match song_info {
-                    Ok(mut song_info) => {
-                        if song_info.pull_lyrics.is_none() {
-                            println!(
-                                "Changed to: {} - {}",
-                                song_info.song_title, song_info.artist_name
-                            );
-                            let lyrics = lyrics_fetcher
-                                .get_lyrics(&song_info.song_title, &song_info.artist_name);
+                    let song_info = song_info.try_lock();
 
-                            song_info.pull_lyrics = Some(
-                                lyrics
-                                    .map(|l| l.lyrics)
-                                    .unwrap_or("Lyrics not available".into()),
-                            );
+                    match song_info {
+                        Ok(mut song_info) => {
+                            if song_info.pull_lyrics.is_none() {
+                                println!(
+                                    "Changed to: {} - {}",
+                                    song_info.song_title, song_info.artist_name
+                                );
+                                let lyrics = lyrics_fetcher
+                                    .get_lyrics(&song_info.song_title, &song_info.artist_name);
+
+                                song_info.pull_lyrics = Some(
+                                    lyrics
+                                        .map(|l| l.lyrics)
+                                        .unwrap_or("Lyrics not available".into()),
+                                );
+                            }
                         }
+                        Err(e) => println!("Error: {:?}", e),
                     }
-                    Err(e) => println!("Error: {:?}", e),
-                }
 
-                sleep(Duration::from_millis(250));
-            });
-        }
+                    sleep(Duration::from_millis(250));
+                }
+            }
+        });
     }
 
     pub fn update(&mut self, song_info: &SongInfo) {
