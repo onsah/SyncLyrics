@@ -2,7 +2,7 @@
 Name=SyncLyrics
 GenericName=Synronize Lyrics from Spotify
 Comment=Synronize Lyrics from Spotify
-Categories=Music;
+Categories=Audio;AudioVideo;
 Exec=com.github.onsah.sync-lyrics
 Icon=application-default-icon
 Terminal=false

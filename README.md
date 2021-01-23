@@ -2,6 +2,12 @@
 
 Displays the lyrics of the currently played song on the Spotify. Works for Linux
 
+<p align="center">
+    <a href="">
+        <img alt="Get the .deb" src="assets/deb.svg">
+    </a>
+</p>
+
 <p align=center> 
     <img src="assets/screenshot.png">
 </p>
@@ -11,17 +17,45 @@ Displays the lyrics of the currently played song on the Spotify. Works for Linux
 * Pin the window so it doesn't fall back of other programs
 * Change light/dark color modes
 
+## Usage
+
+In the first opening, you need to provide an api key from [here](https://happi.dev/)
+
 ## Installation
 
-### Dependenices
+### From Binary
+
+Download the `.deb` package from [here]()
+
+Run
+```
+sudo dpkg -i package.deb
+```
+
+### From Source
+
+#### Dependenices
 Make sure these are installed before proceeding to install
 
 * cargo
 * meson
-* gtk
-* glib
+* libgtk-3-dev
+* libglib2.0-dev
+* libglib2.0-dev-bin
+* libdbus-1-dev
+* libssl-dev
+* libcairo2-dev
+* libpango1.0-dev
+* libatk1.0-dev
+* libgdk-pixbuf2.0-dev
+* build-essential
 
-### Building
+If you are on an Ubuntu based distro, you can just run the following 
+```
+sudo apt install meson build-essential libglib2.0-dev libglib2.0-dev-bin libdbus-1-dev libssl-dev libcairo2-dev libpango1.0-dev libatk1.0-dev libgdk-pixbuf2.0-dev libgtk-3-dev
+```
+
+#### Build Instructions
 
 ```
 meson build --prefix=/usr
@@ -38,8 +72,6 @@ To install
 ```
 ninja install
 ```
-
-In the first opening, you need to provide an api key from [here](https://happi.dev/)
 
 ## TODO
 * Cache the lyrics
