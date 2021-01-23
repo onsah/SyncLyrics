@@ -15,11 +15,16 @@ impl Settings {
     }
 
     pub fn set_api_key(&self, api_key: &str) {
-        self.settings.set_string(Self::API_KEY_FIELD, api_key).unwrap();
+        self.settings
+            .set_string(Self::API_KEY_FIELD, api_key)
+            .unwrap();
     }
 
     pub fn get_api_key(&self) -> String {
         // TODO: warn if fails to safe
-        self.settings.get_string(Self::API_KEY_FIELD).unwrap().into()
+        self.settings
+            .get_string(Self::API_KEY_FIELD)
+            .unwrap()
+            .into()
     }
 }

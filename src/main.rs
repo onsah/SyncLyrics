@@ -1,22 +1,22 @@
-
-
 use application::LyricsApplication;
-use gtk::prelude::*;
 use gio::prelude::*;
+use gtk::prelude::*;
 
 use style::STYLE;
 
 mod application;
-mod lyrics;
 mod listener;
-mod widgets;
-mod style;
+mod lyrics;
 mod settings;
+mod style;
+mod widgets;
 
 fn main() {
-    let application =
-        gtk::Application::new(Some("com.github.onsah.sync-lyrics"), gio::ApplicationFlags::empty())
-            .expect("Initialization failed...");
+    let application = gtk::Application::new(
+        Some("com.github.onsah.sync-lyrics"),
+        gio::ApplicationFlags::empty(),
+    )
+    .expect("Initialization failed...");
 
     application.connect_startup(|app| {
         setup_style();
@@ -30,13 +30,13 @@ fn main() {
 }
 
 fn setup_style() {
-        // css
-        let provider = gtk::CssProvider::new();
-        provider.load_from_data(STYLE.as_bytes()).unwrap();
+    // css
+    let provider = gtk::CssProvider::new();
+    provider.load_from_data(STYLE.as_bytes()).unwrap();
 
-        gtk::StyleContext::add_provider_for_screen(
-            &gdk::Screen::get_default().expect("Error initializing gtk css provider."),
-            &provider,
-            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-        );
+    gtk::StyleContext::add_provider_for_screen(
+        &gdk::Screen::get_default().expect("Error initializing gtk css provider."),
+        &provider,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
 }

@@ -1,12 +1,14 @@
 use glib::{IsA, ObjectExt};
-use gtk::{Align, ButtonExt, ContainerExt, GtkWindowExt, HeaderBarExt, Image, Inhibit, Switch, SwitchExt, ToggleButton, ToggleButtonExt, Widget, WidgetExt};
+use gtk::{
+    Align, ButtonExt, ContainerExt, GtkWindowExt, HeaderBarExt, Image, Inhibit, Switch, SwitchExt,
+    ToggleButton, ToggleButtonExt, Widget, WidgetExt,
+};
 
 pub struct HeaderBar {
     pub container: gtk::HeaderBar,
 }
 
 impl HeaderBar {
-
     const LIGHT_ICON_NAME: &'static str = "display-brightness-symbolic";
     const DARK_ICON_NAME: &'static str = "weather-clear-night-symbolic";
 
@@ -24,12 +26,15 @@ impl HeaderBar {
         HeaderBar {
             container: headerbar,
         }
-    }   
-    
+    }
+
     fn create_pin_toggle(window: impl GtkWindowExt) -> impl IsA<Widget> {
         let toggle = ToggleButton::new();
 
-        toggle.set_image(Some(&Image::from_icon_name(Some("view-pin-symbolic"), gtk::IconSize::LargeToolbar)));
+        toggle.set_image(Some(&Image::from_icon_name(
+            Some("view-pin-symbolic"),
+            gtk::IconSize::LargeToolbar,
+        )));
         toggle.set_tooltip_text(Some("Keep above"));
         toggle.set_valign(Align::Center);
 
@@ -43,9 +48,11 @@ impl HeaderBar {
     fn create_switch() -> impl IsA<Widget> {
         let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 5);
 
-        let dark_icon = Image::from_icon_name(Some(Self::DARK_ICON_NAME), gtk::IconSize::SmallToolbar);
+        let dark_icon =
+            Image::from_icon_name(Some(Self::DARK_ICON_NAME), gtk::IconSize::SmallToolbar);
 
-        let light_icon = Image::from_icon_name(Some(Self::LIGHT_ICON_NAME), gtk::IconSize::SmallToolbar);
+        let light_icon =
+            Image::from_icon_name(Some(Self::LIGHT_ICON_NAME), gtk::IconSize::SmallToolbar);
 
         let switch = Switch::new();
 
@@ -59,7 +66,9 @@ impl HeaderBar {
             // TODO: change dark/light mode
             println!("checked: {}", checked);
 
-            settings.set_property("gtk_application_prefer_dark_theme", &!checked).unwrap();
+            settings
+                .set_property("gtk_application_prefer_dark_theme", &!checked)
+                .unwrap();
 
             Inhibit::default()
         });
@@ -67,7 +76,7 @@ impl HeaderBar {
         hbox.add(&dark_icon);
         hbox.add(&switch);
         hbox.add(&light_icon);
-        
+
         hbox
     }
 }

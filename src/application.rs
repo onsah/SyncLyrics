@@ -1,9 +1,21 @@
-use std::{sync::{Arc, Mutex}, thread::{sleep, spawn}, time::Duration, unreachable};
-
+use std::{
+    sync::{Arc, Mutex},
+    thread::{sleep, spawn},
+    time::Duration,
+    unreachable,
+};
 use glib::Continue;
-use gtk::{Adjustment, ApplicationWindow, ContainerExt, DialogExt, DialogFlags, EntryExt, GtkWindowExt, LabelExt, MessageType, WidgetExt};
+use gtk::{
+    Adjustment, ApplicationWindow, ContainerExt, DialogExt, DialogFlags, EntryExt, GtkWindowExt,
+    LabelExt, MessageType, WidgetExt,
+};
 
-use crate::{listener::{Listener, SongInfo}, lyrics::{LyricsFetcher, happi::HappiLyrics}, settings::Settings, widgets::HeaderBar};
+use crate::{
+    listener::{Listener, SongInfo},
+    lyrics::{happi::HappiLyrics, LyricsFetcher},
+    settings::Settings,
+    widgets::HeaderBar,
+};
 
 pub struct LyricsApplication {
     window: gtk::ApplicationWindow,
@@ -20,11 +32,11 @@ impl LyricsApplication {
         let mut app = LyricsApplication {
             window: window.clone(),
             headerbar: HeaderBar::new(window),
-            title_label: gtk::Label::new (Some("")),
+            title_label: gtk::Label::new(Some("")),
             artist_label: gtk::Label::new(Some("")),
             lyrics_label: gtk::Label::new(Some("")),
         };
-        
+
         app.build_ui();
 
         app
@@ -36,7 +48,7 @@ impl LyricsApplication {
         self.window.set_size_request(550, 700);
 
         self.window.set_titlebar(Some(&self.headerbar.container));
-        
+
         self.title_label.set_widget_name("title1");
         self.lyrics_label.set_line_wrap(true);
 
@@ -45,7 +57,8 @@ impl LyricsApplication {
         vbox.add(&self.artist_label);
 
         // Lyrics label is scrolled
-        let label_scroller = gtk::ScrolledWindow::new(None as Option<&Adjustment>, None as Option<&Adjustment>);
+        let label_scroller =
+            gtk::ScrolledWindow::new(None as Option<&Adjustment>, None as Option<&Adjustment>);
         label_scroller.set_size_request(250, 250);
         label_scroller.set_vexpand(true);
         label_scroller.add(&self.lyrics_label);
@@ -63,7 +76,7 @@ impl LyricsApplication {
 
         self.check_api_key(Arc::clone(&song_info));
 
-        self.start_update_listener(song_info);        
+        self.start_update_listener(song_info);
     }
 
     /**
@@ -74,7 +87,7 @@ impl LyricsApplication {
             match song_info.try_lock() {
                 Ok(song_info) => {
                     self.update(&song_info);
-                },
+                }
                 Err(e) => println!("Error: {:?}", e),
             }
 
@@ -88,7 +101,7 @@ impl LyricsApplication {
         let api_key = settings.get_api_key();
         println!("api key: {}", api_key);
         let has_api_key = api_key != "";
-        
+
         if !has_api_key {
             // display api key dialog
             let dialog = gtk::MessageDialog::new(
@@ -96,21 +109,21 @@ impl LyricsApplication {
                 DialogFlags::DESTROY_WITH_PARENT,
                 MessageType::Question,
                 gtk::ButtonsType::Ok,
-                "An api key from happi.dev is needed to retrieve lyrics"
+                "An api key from happi.dev is needed to retrieve lyrics",
             );
 
             let api_label = gtk::Entry::new();
             let dialog_box = dialog.get_content_area();
 
-            dialog_box.add(&api_label);  
+            dialog_box.add(&api_label);
 
             dialog.connect_response(|d, r| {
                 println!("r: {:?}", r);
                 match r {
                     gtk::ResponseType::Ok => {
                         d.emit_close();
-                    },
-                    _ => unreachable!()
+                    }
+                    _ => unreachable!(),
                 }
             });
 
@@ -131,37 +144,42 @@ impl LyricsApplication {
     }
 
     fn start_listening_spotify(song_info: Arc<Mutex<SongInfo>>, api_key: &str) {
-
         let mut listen = Listener::new();
 
         listen.connect_signal(Arc::clone(&song_info));
-        
+
         println!("Api key: {}", api_key);
         let lyrics_fetcher = HappiLyrics::new(api_key.into());
-    
+
         {
             let song_info = Arc::clone(&song_info);
             // Listen to spotify changes
-            spawn(move || {
-                loop { 
-                    listen.listen();
-        
-                    let song_info = song_info.try_lock();
-        
-                    match song_info {
-                        Ok(mut song_info) => {
-                            if song_info.pull_lyrics.is_none() {
-                                println!("Changed to: {} - {}", song_info.song_title, song_info.artist_name);
-                                let lyrics = lyrics_fetcher.get_lyrics(&song_info.song_title, &song_info.artist_name);
-        
-                                song_info.pull_lyrics = Some(lyrics.map(|l| l.lyrics).unwrap_or("Lyrics not available".into()));
-                            }
-                        },
-                        Err(e) => println!("Error: {:?}", e),
+            spawn(move || loop {
+                listen.listen();
+
+                let song_info = song_info.try_lock();
+
+                match song_info {
+                    Ok(mut song_info) => {
+                        if song_info.pull_lyrics.is_none() {
+                            println!(
+                                "Changed to: {} - {}",
+                                song_info.song_title, song_info.artist_name
+                            );
+                            let lyrics = lyrics_fetcher
+                                .get_lyrics(&song_info.song_title, &song_info.artist_name);
+
+                            song_info.pull_lyrics = Some(
+                                lyrics
+                                    .map(|l| l.lyrics)
+                                    .unwrap_or("Lyrics not available".into()),
+                            );
+                        }
                     }
-        
-                    sleep(Duration::from_millis(250));
+                    Err(e) => println!("Error: {:?}", e),
                 }
+
+                sleep(Duration::from_millis(250));
             });
         }
     }
@@ -169,18 +187,29 @@ impl LyricsApplication {
     pub fn update(&mut self, song_info: &SongInfo) {
         self.set_song_title(&song_info.song_title);
         self.set_artist(&song_info.artist_name);
-        self.set_lyrics(song_info.pull_lyrics.as_ref().map(String::as_str).unwrap_or("lyrics are not available"));
+        self.set_lyrics(
+            song_info
+                .pull_lyrics
+                .as_ref()
+                .map(String::as_str)
+                .unwrap_or("lyrics are not available"),
+        );
     }
 
     fn set_song_title(&mut self, song_title: &str) {
-        self.title_label.set_markup(&format!("<span size=\"x-large\">{}</span>", song_title));
+        self.title_label
+            .set_markup(&format!("<span size=\"x-large\">{}</span>", song_title));
     }
 
     fn set_artist(&mut self, artist_name: &str) {
-        self.artist_label.set_markup(&format!("<span size=\"large\" weight=\"bold\">{}</span>", artist_name));
+        self.artist_label.set_markup(&format!(
+            "<span size=\"large\" weight=\"bold\">{}</span>",
+            artist_name
+        ));
     }
 
     fn set_lyrics(&mut self, lyrics: &str) {
-        self.lyrics_label.set_markup(&format!("<span size=\"large\">{}</span>", lyrics));
+        self.lyrics_label
+            .set_markup(&format!("<span size=\"large\">{}</span>", lyrics));
     }
 }
