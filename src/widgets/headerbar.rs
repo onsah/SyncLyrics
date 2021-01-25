@@ -1,8 +1,5 @@
 use glib::{IsA, ObjectExt};
-use gtk::{
-    Align, ButtonExt, ContainerExt, GtkWindowExt, HeaderBarExt, Image, Inhibit, Switch, SwitchExt,
-    ToggleButton, ToggleButtonExt, Widget, WidgetExt,
-};
+use gtk::{Align, ButtonExt, ContainerExt, GtkWindowExt, HeaderBarExt, Image, Switch, ToggleButton, ToggleButtonExt, Widget, WidgetExt};
 
 pub struct HeaderBar {
     pub container: gtk::HeaderBar,
@@ -62,16 +59,15 @@ impl HeaderBar {
 
         let settings = gtk::Settings::get_default().unwrap();
 
-        switch.connect_state_set(move |_, checked| {
-            // TODO: change dark/light mode
-            println!("checked: {}", checked);
-
-            settings
-                .set_property("gtk_application_prefer_dark_theme", &!checked)
-                .unwrap();
-
-            Inhibit::default()
-        });
+        settings
+            .bind_property("gtk_application_prefer_dark_theme", &switch, "active")
+            .flags(
+                glib::BindingFlags::DEFAULT
+                    | glib::BindingFlags::SYNC_CREATE
+                    | glib::BindingFlags::BIDIRECTIONAL
+                    | glib::BindingFlags::INVERT_BOOLEAN,
+            )
+            .build();
 
         hbox.add(&dark_icon);
         hbox.add(&switch);
