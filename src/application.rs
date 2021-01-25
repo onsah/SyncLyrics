@@ -1,27 +1,27 @@
 use glib::Continue;
 use gtk::{
-    Adjustment, ApplicationWindow, ContainerExt, DialogExt, DialogFlags, EntryExt, GtkWindowExt,
-    LabelExt, MessageType, WidgetExt,
+    ApplicationWindow, ContainerExt, DialogExt, DialogFlags, EntryExt, GtkWindowExt, MessageType,
+    WidgetExt,
 };
 use std::{
     sync::{Arc, Mutex},
     thread::{sleep, spawn},
-    time::Duration, unreachable,
+    time::Duration,
+    unreachable,
 };
 
 use crate::{
     listener::{Listener, SongInfo},
     lyrics::{happi::HappiLyrics, LyricsFetcher},
     settings::Settings,
-    widgets::HeaderBar,
+    widgets::{HeaderBar, LyricsView},
 };
 
 pub struct LyricsApplication {
     window: gtk::ApplicationWindow,
     headerbar: HeaderBar,
-    title_label: gtk::Label,
-    artist_label: gtk::Label,
-    lyrics_label: gtk::Label,
+    lyrics_view: LyricsView,
+    song_info: SongInfo,
 }
 
 impl LyricsApplication {
@@ -31,9 +31,8 @@ impl LyricsApplication {
         let mut app = LyricsApplication {
             window: window.clone(),
             headerbar: HeaderBar::new(window),
-            title_label: gtk::Label::new(Some("")),
-            artist_label: gtk::Label::new(Some("")),
-            lyrics_label: gtk::Label::new(Some("")),
+            lyrics_view: LyricsView::new(),
+            song_info: SongInfo::default(),
         };
 
         app.build_ui();
@@ -48,24 +47,9 @@ impl LyricsApplication {
 
         self.window.set_titlebar(Some(&self.headerbar.container));
 
-        self.title_label.set_widget_name("title1");
-        self.lyrics_label.set_line_wrap(true);
+        self.window.add(self.lyrics_view.as_widget());
 
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 5);
-        vbox.add(&self.title_label);
-        vbox.add(&self.artist_label);
-
-        // Lyrics label is scrolled
-        let label_scroller =
-            gtk::ScrolledWindow::new(None as Option<&Adjustment>, None as Option<&Adjustment>);
-        label_scroller.set_size_request(250, 250);
-        label_scroller.set_vexpand(true);
-        label_scroller.add(&self.lyrics_label);
-
-        vbox.add(&label_scroller);
-        self.window.add(&vbox);
-
-        self.update(&SongInfo::default());
+        self.update(SongInfo::default());
 
         self.window.show_all();
     }
@@ -85,10 +69,10 @@ impl LyricsApplication {
         glib::timeout_add_local(250, move || {
             match song_info.try_lock() {
                 Ok(song_info) => {
-                    if song_info.song_title != self.title_label.get_text()
-                        || song_info.artist_name != self.artist_label.get_text()
+                    if song_info.song_title != self.song_info.song_title
+                        || song_info.artist_name != self.song_info.artist_name
                     {
-                        self.update(&song_info);
+                        self.update((*song_info).clone());
                     }
                 }
                 Err(e) => println!("Error: {:?}", e),
@@ -192,32 +176,8 @@ impl LyricsApplication {
         });
     }
 
-    pub fn update(&mut self, song_info: &SongInfo) {
-        self.set_song_title(&song_info.song_title);
-        self.set_artist(&song_info.artist_name);
-        self.set_lyrics(
-            song_info
-                .pull_lyrics
-                .as_ref()
-                .map(String::as_str)
-                .unwrap_or("lyrics are not available"),
-        );
-    }
-
-    fn set_song_title(&mut self, song_title: &str) {
-        self.title_label
-            .set_markup(&format!("<span size=\"x-large\">{}</span>", song_title));
-    }
-
-    fn set_artist(&mut self, artist_name: &str) {
-        self.artist_label.set_markup(&format!(
-            "<span size=\"large\" weight=\"bold\">{}</span>",
-            artist_name
-        ));
-    }
-
-    fn set_lyrics(&mut self, lyrics: &str) {
-        self.lyrics_label
-            .set_markup(&format!("<span size=\"large\">{}</span>", lyrics));
+    pub fn update(&mut self, song_info: SongInfo) {
+        self.song_info = song_info;
+        self.lyrics_view.update(&self.song_info);
     }
 }

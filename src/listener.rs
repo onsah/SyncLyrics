@@ -124,15 +124,8 @@ impl Listener {
                     .and_then(|s| Some(s.as_str()?.to_owned()));
                 // r/programminghorror
                 let artist: Option<String> = metadata.remove("xesam:artist").and_then(|s| {
-                        Some(
-                            s.as_iter()?
-                                .next()?
-                                .as_iter()?
-                                .next()?
-                                .as_str()?
-                                .to_owned()
-                        )
-                    });
+                    Some(s.as_iter()?.next()?.as_iter()?.next()?.as_str()?.to_owned())
+                });
                 match (title, artist) {
                     (Some(song_title), Some(artist_name)) => match song_info.try_lock() {
                         Ok(mut guard) => {
