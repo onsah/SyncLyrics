@@ -1,19 +1,19 @@
 use glib::IsA;
-use gtk::{Adjustment, ContainerExt, LabelExt, Widget, WidgetExt};
-
-use crate::listener::SongInfo;
+use gtk::{Adjustment, ContainerExt, LabelExt, SpinnerExt, StackExt, Widget, WidgetExt};
 
 pub struct LyricsView {
     container: gtk::Box,
     title_label: gtk::Label,
     artist_label: gtk::Label,
     lyrics_label: gtk::Label,
+    spinner: gtk::Spinner,
+    stack: gtk::Stack,
 }
 
 impl LyricsView {
     pub fn new() -> Self {
-        let title_label = gtk::Label::new(Some(""));
-        let artist_label = gtk::Label::new(Some(""));
+        let title_label = gtk::Label::new(Some("This should change"));
+        let artist_label = gtk::Label::new(Some("This should change"));
         let lyrics_label = gtk::Label::new(Some(""));
 
         title_label.set_widget_name("title1");
@@ -23,6 +23,16 @@ impl LyricsView {
         container.add(&title_label);
         container.add(&artist_label);
 
+        let stack = gtk::Stack::new();
+
+        let spinner = gtk::Spinner::new();
+        spinner.set_size_request(75, 75);
+        spinner.set_halign(gtk::Align::Center);
+        spinner.set_valign(gtk::Align::Center);
+        spinner.stop();
+
+        stack.add_named(&spinner, "spinner");
+
         // Lyrics label is scrolled
         let label_scroller =
             gtk::ScrolledWindow::new(None as Option<&Adjustment>, None as Option<&Adjustment>);
@@ -30,7 +40,11 @@ impl LyricsView {
         label_scroller.set_vexpand(true);
         label_scroller.add(&lyrics_label);
 
-        container.add(&label_scroller);
+        stack.add_named(&label_scroller, "lyrics");
+
+        stack.set_visible_child_name("spinner");
+
+        container.add(&stack);
 
         container.show_all();
 
@@ -39,6 +53,8 @@ impl LyricsView {
             title_label,
             artist_label,
             lyrics_label,
+            spinner,
+            stack,
         }
     }
 
@@ -46,16 +62,12 @@ impl LyricsView {
         &self.container
     }
 
-    pub fn update(&mut self, song_info: &SongInfo) {
-        self.set_song_title(&song_info.song_title);
-        self.set_artist(&song_info.artist_name);
-        self.set_lyrics(
-            song_info
-                .pull_lyrics
-                .as_ref()
-                .map(String::as_str)
-                .unwrap_or("lyrics are not available"),
-        );
+    pub fn song_changed(&mut self, song_title: &str, artist_name: &str) {
+        self.set_song_title(song_title);
+        self.set_artist(artist_name);
+
+        self.spinner.start();
+        self.stack.set_visible_child_name("spinner");
     }
 
     fn set_song_title(&mut self, song_title: &str) {
@@ -72,11 +84,13 @@ impl LyricsView {
         ));
     }
 
-    fn set_lyrics(&mut self, lyrics: &str) {
+    pub fn set_lyrics(&mut self, lyrics: &str) {
         self.lyrics_label.set_markup(&format!(
             "<span size=\"large\">{}</span>",
             Self::escape_markup(lyrics)
         ));
+        self.spinner.stop();
+        self.stack.set_visible_child_name("lyrics");
     }
 
     fn escape_markup(text: &str) -> String {

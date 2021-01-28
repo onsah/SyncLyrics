@@ -64,14 +64,10 @@ impl LyricsApplication {
      * Can't make async because gtk widgets are not Send
      */
     fn start_update_listener(mut self, song_info: Arc<Mutex<SongInfo>>) {
-        glib::timeout_add_local(250, move || {
+        glib::timeout_add_local(50, move || {
             match song_info.try_lock() {
                 Ok(song_info) => {
-                    if song_info.song_title != self.song_info.song_title
-                        || song_info.artist_name != self.song_info.artist_name
-                    {
-                        self.update((*song_info).clone());
-                    }
+                    self.update((*song_info).clone());
                 }
                 Err(_) => (/* println!("update_listener: {:?}", e) */),
             }
@@ -118,37 +114,56 @@ impl LyricsApplication {
             loop {
                 listen.listen();
 
-                let song_info = song_info.try_lock();
+                let song_info_guard = song_info.lock().await;
 
-                match song_info {
-                    Ok(mut song_info) => {
-                        if song_info.pull_lyrics.is_none() {
-                            println!(
-                                "Changed to: {} - {}",
-                                song_info.song_title, song_info.artist_name
-                            );
+                if song_info_guard.pull_lyrics.is_none() {
+                    println!(
+                        "Changed to: {} - {}",
+                        song_info_guard.song_title, song_info_guard.artist_name
+                    );
 
-                            let lyrics = lyrics_fetcher
-                                .get_lyrics(&song_info.song_title, &song_info.artist_name)
-                                .await;
+                    let (song_title, artist_name) = (
+                        song_info_guard.song_title.to_string(),
+                        song_info_guard.artist_name.to_string(),
+                    );
 
-                            song_info.pull_lyrics = Some(
-                                lyrics
-                                    .map(|l| l.lyrics)
-                                    .unwrap_or("Lyrics not available".into()),
-                            );
-                        }
-                    }
-                    Err(_) => (/* println!("song_info_listener: {:?}", e) */),
+                    // No need to lock during web request
+                    drop(song_info_guard);
+
+                    let lyrics = lyrics_fetcher.get_lyrics(&song_title, &artist_name).await;
+
+                    let mut song_info = song_info.lock().await;
+
+                    song_info.pull_lyrics = Some(
+                        lyrics
+                            .map(|l| l.lyrics)
+                            .unwrap_or("Lyrics not available".into()),
+                    );
+                } else {
+                    // no lyrics to be pulled, can sleep a bit
+                    sleep(Duration::from_millis(50)).await;
                 }
-
-                sleep(Duration::from_millis(250)).await;
             }
         }
     }
 
     pub fn update(&mut self, song_info: SongInfo) {
+        match song_info.pull_lyrics.as_ref() {
+            Some(lyrics) => {
+                if self.song_info.pull_lyrics.is_none() {
+                    self.lyrics_view.set_lyrics(lyrics.as_str());
+                }
+            }
+            None => {
+                if self.song_info.song_title != song_info.song_title
+                    || self.song_info.artist_name != song_info.artist_name
+                {
+                    self.lyrics_view
+                        .song_changed(&song_info.song_title, &song_info.artist_name);
+                }
+            }
+        }
+
         self.song_info = song_info;
-        self.lyrics_view.update(&self.song_info);
     }
 }
