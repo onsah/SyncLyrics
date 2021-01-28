@@ -1,19 +1,16 @@
+use futures::{
+    executor,
+    future::{AbortHandle, Abortable},
+    Future,
+};
 use glib::Continue;
-use gtk::{
-    ApplicationWindow, ContainerExt, DialogExt, DialogFlags, EntryExt, GtkWindowExt, MessageType,
-    WidgetExt,
-};
-use std::{
-    sync::{Arc, Mutex},
-    thread::{sleep, spawn},
-    time::Duration,
-    unreachable,
-};
+use gtk::{ApplicationWindow, ContainerExt, GtkWindowExt, Inhibit, WidgetExt};
+use std::{sync::Arc, time::Duration};
+use tokio::{sync::Mutex, time::sleep};
 
 use crate::{
     listener::{Listener, SongInfo},
-    lyrics::{happi::HappiLyrics, LyricsFetcher},
-    settings::Settings,
+    lyrics::genius::Genius,
     widgets::{HeaderBar, LyricsView},
 };
 
@@ -57,13 +54,14 @@ impl LyricsApplication {
     pub fn mount_listener(self) {
         let song_info = Arc::from(Mutex::from(SongInfo::default()));
 
-        self.check_api_key(Arc::clone(&song_info));
+        self.song_info_start_listening(Arc::clone(&song_info));
 
         self.start_update_listener(song_info);
     }
 
     /**
      * Checks and updates if detected song is changed
+     * Can't make async because gtk widgets are not Send
      */
     fn start_update_listener(mut self, song_info: Arc<Mutex<SongInfo>>) {
         glib::timeout_add_local(250, move || {
@@ -75,105 +73,78 @@ impl LyricsApplication {
                         self.update((*song_info).clone());
                     }
                 }
-                Err(e) => println!("Error: {:?}", e),
+                Err(_) => (/* println!("update_listener: {:?}", e) */),
             }
 
             Continue(true)
         });
     }
 
-    fn check_api_key(&self, song_info: Arc<Mutex<SongInfo>>) {
-        let settings = Settings::new();
-
-        let api_key = settings.get_api_key();
-        let has_api_key = api_key != "";
-
-        if !has_api_key {
-            // display api key dialog
-            let dialog = gtk::MessageDialog::new(
-                Some(&self.window),
-                DialogFlags::DESTROY_WITH_PARENT,
-                MessageType::Question,
-                gtk::ButtonsType::Ok,
-                "An api key from happi.dev is needed to retrieve lyrics",
-            );
-
-            let api_label = gtk::Entry::new();
-            let dialog_box = dialog.get_content_area();
-
-            dialog_box.add(&api_label);
-
-            dialog.connect_response(|d, r| {
-                println!("r: {:?}", r);
-                match r {
-                    gtk::ResponseType::Ok => {
-                        d.emit_close();
-                    }
-                    _ => unreachable!(),
-                }
-            });
-
-            dialog.connect_close(move |_| {
-                let api_key = api_label.get_text();
-                Self::start_listening(Arc::clone(&song_info), api_key.as_str());
-
-                let settings = Settings::new();
-                settings.set_api_key(api_label.get_text().as_str());
-            });
-
-            dialog.show_all();
-        } else {
-            let settings = Settings::new();
-            let api_key = settings.get_api_key();
-            Self::start_listening(Arc::clone(&song_info), api_key.as_str());
-        }
-    }
-
     /**
      * Listens currently played song. If it changes it retrieves its lyrics as well
      */
-    fn start_listening(song_info: Arc<Mutex<SongInfo>>, api_key: &str) {
-        let api_key: String = api_key.into();
+    fn song_info_start_listening(&self, song_info: Arc<Mutex<SongInfo>>) {
+        // This allows aborting it when window is closed
+        let abort_handle = Self::spawn_as_abortable(Self::song_info_listener_loop(song_info));
 
-        spawn(move || {
-            let mut listen = Listener::new();
-
-            listen.connect_signal_blocking(Arc::clone(&song_info));
-
-            let lyrics_fetcher = HappiLyrics::new(api_key);
-
-            {
-                let song_info = Arc::clone(&song_info);
-                // Listen to spotify changes
-                loop {
-                    listen.listen();
-
-                    let song_info = song_info.try_lock();
-
-                    match song_info {
-                        Ok(mut song_info) => {
-                            if song_info.pull_lyrics.is_none() {
-                                println!(
-                                    "Changed to: {} - {}",
-                                    song_info.song_title, song_info.artist_name
-                                );
-                                let lyrics = lyrics_fetcher
-                                    .get_lyrics(&song_info.song_title, &song_info.artist_name);
-
-                                song_info.pull_lyrics = Some(
-                                    lyrics
-                                        .map(|l| l.lyrics)
-                                        .unwrap_or("Lyrics not available".into()),
-                                );
-                            }
-                        }
-                        Err(e) => println!("Error: {:?}", e),
-                    }
-
-                    sleep(Duration::from_millis(250));
-                }
-            }
+        // Terminate the future when window is closed
+        self.window.connect_delete_event(move |_, _| {
+            abort_handle.abort();
+            Inhibit(false)
         });
+    }
+
+    fn spawn_as_abortable<F: Future + Send + 'static>(fut: F) -> AbortHandle
+    where
+        <F as Future>::Output: Send,
+    {
+        let (abort_handle, abort_registration) = AbortHandle::new_pair();
+
+        tokio::spawn(Abortable::new(fut, abort_registration));
+
+        abort_handle
+    }
+
+    // Listen to spotify changes
+    async fn song_info_listener_loop(song_info: Arc<Mutex<SongInfo>>) {
+        let mut listen = Listener::new();
+
+        executor::block_on(listen.connect_signal_loop(Arc::clone(&song_info)));
+
+        let mut lyrics_fetcher = Genius::new();
+
+        {
+            let song_info = Arc::clone(&song_info);
+            loop {
+                listen.listen();
+
+                let song_info = song_info.try_lock();
+
+                match song_info {
+                    Ok(mut song_info) => {
+                        if song_info.pull_lyrics.is_none() {
+                            println!(
+                                "Changed to: {} - {}",
+                                song_info.song_title, song_info.artist_name
+                            );
+
+                            let lyrics = lyrics_fetcher
+                                .get_lyrics(&song_info.song_title, &song_info.artist_name)
+                                .await;
+
+                            song_info.pull_lyrics = Some(
+                                lyrics
+                                    .map(|l| l.lyrics)
+                                    .unwrap_or("Lyrics not available".into()),
+                            );
+                        }
+                    }
+                    Err(_) => (/* println!("song_info_listener: {:?}", e) */),
+                }
+
+                sleep(Duration::from_millis(250)).await;
+            }
+        }
     }
 
     pub fn update(&mut self, song_info: SongInfo) {

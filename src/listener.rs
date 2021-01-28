@@ -3,9 +3,10 @@ use dbus::{
     arg::{self, RefArg},
     Message,
 };
-use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
-use std::{collections::HashMap, thread::sleep};
+use tokio::{sync::Mutex, time::sleep};
 
 pub struct Listener {
     connection: Connection,
@@ -98,13 +99,13 @@ impl Listener {
         }
     }
 
-    pub fn connect_signal_blocking(&self, song_info: Arc<Mutex<SongInfo>>) {
-        while !self.connect_signal(Arc::clone(&song_info)).is_some() {
-            sleep(Duration::from_millis(250));
+    pub async fn connect_signal_loop(&self, song_info: Arc<Mutex<SongInfo>>) {
+        while !self.connect_signal(Arc::clone(&song_info)).await.is_some() {
+            sleep(Duration::from_millis(250)).await;
         }
     }
 
-    fn connect_signal(&self, song_info: Arc<Mutex<SongInfo>>) -> Option<()> {
+    async fn connect_signal(&self, song_info: Arc<Mutex<SongInfo>>) -> Option<()> {
         let proxy = self.connection.with_proxy(
             "org.mpris.MediaPlayer2.spotify",
             "/org/mpris/MediaPlayer2",
@@ -116,8 +117,8 @@ impl Listener {
 
         match metadata_res {
             Ok(mut metadata) => {
-                // we need to wait a little bit otherwise data my not be available causing panic
-                sleep(Duration::from_millis(50));
+                // we need to wait a little bit otherwise data may not be available causing panic
+                // sleep(Duration::from_millis(100)).await;
 
                 let title: Option<String> = metadata
                     .remove("xesam:title")
@@ -129,13 +130,8 @@ impl Listener {
                 match (title, artist) {
                     (Some(song_title), Some(artist_name)) => match song_info.try_lock() {
                         Ok(mut guard) => {
-                            if &guard.song_title != &song_title {
-                                *guard = SongInfo {
-                                    song_title,
-                                    artist_name,
-                                    pull_lyrics: None,
-                                }
-                            }
+                            // Sometimes empty song is passed which causes crash
+                            Self::set_if_valid(&mut guard, &song_title, &artist_name);
                         }
                         _ => (),
                     },
@@ -151,14 +147,7 @@ impl Listener {
                                 (Some(song_title), Some(artist_name)) => match song_info.try_lock()
                                 {
                                     Ok(mut guard) => {
-                                        if &guard.song_title != &song_title {
-                                            println!("song changed to: {}", song_title);
-                                            *guard = SongInfo {
-                                                song_title,
-                                                artist_name,
-                                                pull_lyrics: None,
-                                            }
-                                        }
+                                        Self::set_if_valid(&mut guard, &song_title, &artist_name);
                                     }
                                     _ => (),
                                 },
@@ -175,6 +164,17 @@ impl Listener {
         }
     }
 
+    fn set_if_valid(song_info: &mut SongInfo, song_title: &str, artist_name: &str) {
+        if !song_title.is_empty() && &song_info.song_title != song_title {
+            println!("song changed to: {}", song_title);
+            *song_info = SongInfo {
+                song_title: song_title.into(),
+                artist_name: artist_name.into(),
+                pull_lyrics: None,
+            };
+        }
+    }
+
     pub fn listen(&mut self) {
         self.connection.process(Duration::from_millis(50)).unwrap();
     }
@@ -182,14 +182,18 @@ impl Listener {
 
 #[cfg(test)]
 mod tests {
+    use futures::executor;
+
     use super::*;
 
     #[test]
     fn listener_works() -> Result<(), Box<dyn std::error::Error>> {
-        let song_info = Arc::from(Mutex::from(SongInfo::default()));
-        let listener = Listener::new();
+        executor::block_on(async {
+            let song_info = Arc::from(Mutex::from(SongInfo::default()));
+            let listener = Listener::new();
 
-        assert!(listener.connect_signal(song_info).is_some());
-        Ok(())
+            assert!(listener.connect_signal(song_info).await.is_some());
+            Ok(())
+        })
     }
 }

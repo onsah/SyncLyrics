@@ -1,10 +1,8 @@
 use serde_derive::{Deserialize, Serialize};
 
-pub mod happi;
+pub mod genius;
 
 pub trait LyricsFetcher {
-    fn new(api_key: String) -> Self;
-
     fn get_lyrics(&self, song_title: &str, artist: &str) -> LyricsResult;
 }
 

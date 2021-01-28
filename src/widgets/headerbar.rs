@@ -1,5 +1,8 @@
 use glib::{IsA, ObjectExt};
-use gtk::{Align, ButtonExt, ContainerExt, GtkWindowExt, HeaderBarExt, Image, Switch, ToggleButton, ToggleButtonExt, Widget, WidgetExt};
+use gtk::{
+    Align, ButtonExt, ContainerExt, GtkWindowExt, HeaderBarExt, Image, Switch, ToggleButton,
+    ToggleButtonExt, Widget, WidgetExt,
+};
 
 pub struct HeaderBar {
     pub container: gtk::HeaderBar,

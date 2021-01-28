@@ -11,7 +11,11 @@ gtk = "0.9.2"
 glib = "^0"
 gio = "^0"
 gdk = "^0"
-restson = "^0.7"
 serde = "^1.0"
 serde_derive = "^1.0"
 dbus = "0.9.1"
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+futures = { version = "0.3", features = ["executor"] }
+tokio-macros = "1.0.0"
+tokio = { version = "1.1.0", features = ["macros"] }
+scraper = "0.12.0"

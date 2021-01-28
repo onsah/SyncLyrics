@@ -59,19 +59,27 @@ impl LyricsView {
     }
 
     fn set_song_title(&mut self, song_title: &str) {
-        self.title_label
-            .set_markup(&format!("<span size=\"x-large\">{}</span>", song_title));
+        self.title_label.set_markup(&format!(
+            "<span size=\"x-large\">{}</span>",
+            Self::escape_markup(song_title)
+        ));
     }
 
     fn set_artist(&mut self, artist_name: &str) {
         self.artist_label.set_markup(&format!(
             "<span size=\"large\" weight=\"bold\">{}</span>",
-            artist_name
+            Self::escape_markup(artist_name)
         ));
     }
 
     fn set_lyrics(&mut self, lyrics: &str) {
-        self.lyrics_label
-            .set_markup(&format!("<span size=\"large\">{}</span>", lyrics));
+        self.lyrics_label.set_markup(&format!(
+            "<span size=\"large\">{}</span>",
+            Self::escape_markup(lyrics)
+        ));
+    }
+
+    fn escape_markup(text: &str) -> String {
+        text.replace("&", "&amp;")
     }
 }

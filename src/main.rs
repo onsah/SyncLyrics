@@ -7,18 +7,18 @@ use style::STYLE;
 mod application;
 mod listener;
 mod lyrics;
-mod settings;
 mod style;
 mod widgets;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let application = gtk::Application::new(
         Some("com.github.onsah.sync-lyrics"),
         gio::ApplicationFlags::empty(),
     )
     .expect("Initialization failed...");
 
-    application.connect_startup(|app| {
+    application.connect_activate(|app| {
         setup_style();
 
         let application = LyricsApplication::new(app);

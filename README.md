@@ -17,10 +17,6 @@ Displays the lyrics of the currently played song on the Spotify. Works for Linux
 * Pin the window so it doesn't fall back of other programs
 * Change light/dark color modes
 
-## Usage
-
-In the first opening, you need to provide an api key from [here](https://happi.dev/)
-
 ## Installation
 
 ### From Binary
@@ -57,6 +53,8 @@ sudo apt install meson build-essential libglib2.0-dev libglib2.0-dev-bin libdbus
 
 #### Build Instructions
 
+To build manually you need to provide an access token from [here](https://genius.com/api-clients). Then put it in a file named `secret` in the project root.
+
 ```
 meson build --prefix=/usr
 cd build
@@ -81,7 +79,7 @@ ninja install
 
 ## Credits
 
-This application uses [happi](https://happi.dev/) api. It is only used for personal interests and I don't have any commercial profit from this application.
+This application uses [Genius](https://docs.genius.com/) api. It is only used for personal interests and I don't have any commercial profit from this application.
 
 This project is inspired from [Lyrics](https://github.com/naaando/lyrics) source code and design.
 

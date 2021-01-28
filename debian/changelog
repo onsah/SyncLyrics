@@ -1,3 +1,9 @@
+sync-lyrics (0.0.3) UNRELEASED; urgency=low
+
+  * Now uses Genius as lyrics provider
+
+ -- Onur Sahin <sahinonur2000@hotmail.com>  Mon, 28 Jan 2021 16:45:00 +0000
+
 sync-lyrics (0.0.2) UNRELEASED; urgency=low
 
   * Fixed app's crashing when Spotify is not open closes: Bug#1
