@@ -1,6 +1,7 @@
 sync-lyrics (0.0.3) UNRELEASED; urgency=low
 
   * Now uses Genius as lyrics provider
+  * Loading animation during fetching lyrics
 
  -- Onur Sahin <sahinonur2000@hotmail.com>  Mon, 28 Jan 2021 16:45:00 +0000
 
