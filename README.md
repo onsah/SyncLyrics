@@ -34,6 +34,7 @@ sudo dpkg -i package.deb
 Make sure these are installed before proceeding to install
 
 * cargo
+* rustc
 * meson
 * libgtk-3-dev
 * libglib2.0-dev
@@ -46,9 +47,11 @@ Make sure these are installed before proceeding to install
 * libgdk-pixbuf2.0-dev
 * build-essential
 
+Sometimes `cargo` may be out of date therefore build may fail. If you want to get latest `cargo` and `rustc` as debian package you can add the ppa from [here](https://launchpad.net/~ubuntu-mozilla-security/+archive/ubuntu/rust-updates)
+
 If you are on an Ubuntu based distro, you can just run the following 
 ```
-sudo apt install meson build-essential libglib2.0-dev libglib2.0-dev-bin libdbus-1-dev libssl-dev libcairo2-dev libpango1.0-dev libatk1.0-dev libgdk-pixbuf2.0-dev libgtk-3-dev
+sudo apt install meson build-essential libglib2.0-dev libglib2.0-dev-bin libdbus-1-dev libssl-dev libcairo2-dev libpango1.0-dev libatk1.0-dev libgdk-pixbuf2.0-dev libgtk-3-dev cargo rustc
 ```
 
 #### Build Instructions
@@ -73,9 +76,7 @@ ninja install
 
 ## TODO
 * Cache the lyrics
-* Being able to change the api key later
-* Add app launcher shortcut
-* Create Icon
+* App icon
 
 ## Credits
 
