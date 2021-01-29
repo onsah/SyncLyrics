@@ -40,7 +40,9 @@ impl LyricsApplication {
     pub fn build_ui(&mut self) {
         self.window.set_border_width(10);
         self.window.set_position(gtk::WindowPosition::Center);
-        self.window.set_size_request(550, 700);
+        self.window.set_resizable(false);
+        self.window.set_hexpand(false);
+        self.window.set_vexpand(false);
 
         self.window.set_titlebar(Some(&self.headerbar.container));
 

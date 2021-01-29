@@ -47,6 +47,7 @@ impl HeaderBar {
 
     fn create_switch() -> impl IsA<Widget> {
         let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+        hbox.set_margin_end(10);
 
         let dark_icon =
             Image::from_icon_name(Some(Self::DARK_ICON_NAME), gtk::IconSize::SmallToolbar);

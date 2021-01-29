@@ -5,5 +5,14 @@
         "**/.hg/store/**": true,
         "**/target/**": true,
         "**/build/**": true,
+        "./Cargo.lock": true,
+    },
+    "search.exclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/.hg/store/**": true,
+        "**/target/**": true,
+        "**/build/**": true,
+        "Cargo.lock": true,
     }
 }

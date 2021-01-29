@@ -101,7 +101,10 @@ impl Genius {
                     .join("\n")
             })
             .collect::<Vec<_>>()
-            .join("\n")
+            .join("")
+            .replace("[", "\n[")
+            .trim()
+            .to_string()
     }
 }
 

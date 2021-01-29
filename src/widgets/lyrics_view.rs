@@ -1,6 +1,8 @@
 use glib::IsA;
 use gtk::{Adjustment, ContainerExt, LabelExt, SpinnerExt, StackExt, Widget, WidgetExt};
 
+use crate::lyrics;
+
 pub struct LyricsView {
     container: gtk::Box,
     title_label: gtk::Label,
@@ -14,14 +16,29 @@ impl LyricsView {
     pub fn new() -> Self {
         let title_label = gtk::Label::new(Some("This should change"));
         let artist_label = gtk::Label::new(Some("This should change"));
+        let separator = gtk::Separator::new(gtk::Orientation::Horizontal);
         let lyrics_label = gtk::Label::new(Some(""));
 
-        title_label.set_widget_name("title1");
+        title_label.set_halign(gtk::Align::Start);
+        title_label.set_margin_start(15);
+
+        artist_label.set_halign(gtk::Align::Start);
+        artist_label.set_margin_start(15);
+
+        lyrics_label.set_halign(gtk::Align::Start);
+        lyrics_label.set_margin_start(15);
+        lyrics_label.set_margin_end(15);
         lyrics_label.set_line_wrap(true);
 
-        let container = gtk::Box::new(gtk::Orientation::Vertical, 5);
+        separator.set_hexpand(true);
+        separator.set_margin_bottom(10);
+        separator.set_margin_top(10);
+
+        let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        container.set_size_request(400, 500);
         container.add(&title_label);
         container.add(&artist_label);
+        container.add(&separator);
 
         let stack = gtk::Stack::new();
 
@@ -36,7 +53,6 @@ impl LyricsView {
         // Lyrics label is scrolled
         let label_scroller =
             gtk::ScrolledWindow::new(None as Option<&Adjustment>, None as Option<&Adjustment>);
-        label_scroller.set_size_request(250, 250);
         label_scroller.set_vexpand(true);
         label_scroller.add(&lyrics_label);
 
@@ -72,14 +88,14 @@ impl LyricsView {
 
     fn set_song_title(&mut self, song_title: &str) {
         self.title_label.set_markup(&format!(
-            "<span size=\"x-large\">{}</span>",
+            "<span size=\"xx-large\">{}</span>",
             Self::escape_markup(song_title)
         ));
     }
 
     fn set_artist(&mut self, artist_name: &str) {
         self.artist_label.set_markup(&format!(
-            "<span size=\"large\" weight=\"bold\">{}</span>",
+            "<span size=\"x-large\" weight=\"bold\">{}</span>",
             Self::escape_markup(artist_name)
         ));
     }

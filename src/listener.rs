@@ -44,8 +44,6 @@ impl arg::ReadAll for PropertiesChanged {
         let metadata = changed_properties.remove("Metadata").unwrap();
         let (title, artist) = get_title_and_artist(metadata);
 
-        // TODO: read metadata from changed properties
-
         Ok(PropertiesChanged {
             sender,
             title,
@@ -117,9 +115,6 @@ impl Listener {
 
         match metadata_res {
             Ok(mut metadata) => {
-                // we need to wait a little bit otherwise data may not be available causing panic
-                // sleep(Duration::from_millis(100)).await;
-
                 let title: Option<String> = metadata
                     .remove("xesam:title")
                     .and_then(|s| Some(s.as_str()?.to_owned()));

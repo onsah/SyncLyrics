@@ -8,8 +8,9 @@ Displays the lyrics of the currently played song on the Spotify. Works for Linux
     </a>
 </p>
 
-<p align=center> 
-    <img src="assets/screenshot.png">
+<p float="left" align=center> 
+    <img src="assets/screenshot-dark.png" width="45%">
+    <img src="assets/screenshot-light.png" width="45%">
 </p>
 
 ## Features
