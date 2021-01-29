@@ -3,7 +3,8 @@ Section: sound
 Priority: optional
 Maintainer: Onur Şahin <sahinonur2000@hotmail.com>
 Homepage: https://github.com/onsah/SyncLyrics
-Build-Depends: cargo,
+Build-Depends: cargo (>= 0.47),
+               rustc (>= 0.47),
                debhelper (>= 9),
                meson,
                libgtk-3-dev,
