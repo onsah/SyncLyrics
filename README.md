@@ -24,7 +24,14 @@ Displays the lyrics of the currently played song on the Spotify. Works for Linux
 
 If you don't have flatpak, you need to install [flatpak](https://flatpak.org/) first.
 
-Download the flatpak from [latest release](https://github.com/onsah/SyncLyrics/releases)
+Also you need to add [flathub](https://flatpak.org/setup/).
+
+If you don't need the `org.freedesktop.Platform/20.08`, install with:
+```
+flatpak install flathub org.freedesktop.Platform//20.08
+```
+
+Download the application from [latest release](https://github.com/onsah/SyncLyrics/releases)
 
 Run
 ```
@@ -53,6 +60,8 @@ ninja install
 ```
  
 ## Building
+
+**Note:** To build manually you need to provide an access token from [here](https://genius.com/api-clients). Then put it in a file named `secret` in the project root.
 
 ### Flatpak build
 
@@ -96,8 +105,6 @@ If you are on an Ubuntu based distro, you can just run the following
 ```
 sudo apt install meson build-essential libglib2.0-dev libglib2.0-dev-bin libdbus-1-dev libssl-dev libcairo2-dev libpango1.0-dev libatk1.0-dev libgdk-pixbuf2.0-dev libgtk-3-dev cargo rustc
 ```
-
-**Note:** To build manually you need to provide an access token from [here](https://genius.com/api-clients). Then put it in a file named `secret` in the project root.
 
 ```
 meson build --prefix=/usr
