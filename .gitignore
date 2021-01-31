@@ -1,5 +1,9 @@
 /target
 /build
+/build-dir
+.flatpak-builder
+repo
 TODO
 debian/build
 secrets
+*.flatpak

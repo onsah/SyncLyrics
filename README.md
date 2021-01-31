@@ -4,7 +4,7 @@ Displays the lyrics of the currently played song on the Spotify. Works for Linux
 
 <p align="center">
     <a href="https://github.com/onsah/SyncLyrics/releases">
-        <img alt="Get the .deb" src="assets/deb.svg">
+        <img alt="Download flatpak" src="assets/flatpak.svg" height="60">
     </a>
 </p>
 
@@ -20,21 +20,61 @@ Displays the lyrics of the currently played song on the Spotify. Works for Linux
 
 ## Installation
 
-### From Binary
+### Flatpak installation
 
-Download the `.deb` package from [here](https://github.com/onsah/SyncLyrics/releases)
+If you don't have flatpak, you need to install [flatpak](https://flatpak.org/) first.
+
+Download the flatpak from [latest release](https://github.com/onsah/SyncLyrics/releases)
 
 Run
 ```
-sudo dpkg -i package.deb
+flatpak install --user io.github.onsah.SyncLyrics.flatpak
 ```
 
-### From Source
+You can launch from app launcher or run
+```
+flatpak run io.github.onsah.SyncLyrics
+```
 
-#### Dependenices
-Make sure these are installed before proceeding to install
+## From Source installation
 
-* cargo
+### Flatpak
+
+First [build with flatpak](#flatpak-build) then [install](#flatpak-installation).
+
+### Meson
+
+**Warning:** This is not the preferred way because the application may behave differently outside the sandbox environment. I don't recommend installing this way.
+
+[Build with meson](#meson-build) then run:
+
+```
+ninja install
+```
+ 
+## Building
+
+### Flatpak build
+
+Build the project and create the repository
+```
+flatpak-builder --repo=repo build-dir io.github.onsah.SyncLyrics.json --force-clean -y 
+```
+
+Bundle the repository
+```
+flatpak build-bundle repo io.github.onsah.SyncLyrics.flatpak io.github.onsah.SyncLyrics
+```
+
+Now you have installable binary. To run refer to [here](#flatpak-installation).
+
+### Meson build
+
+#### Dependencies
+
+Make sure these are installed before building from meson
+
+* cargo (>= 1.45)
 * rustc
 * meson
 * libgtk-3-dev
@@ -50,14 +90,14 @@ Make sure these are installed before proceeding to install
 
 Sometimes `cargo` may be out of date therefore build may fail. If you want to get latest `cargo` and `rustc` as debian package you can add the ppa from [here](https://launchpad.net/~ubuntu-mozilla-security/+archive/ubuntu/rust-updates)
 
+#### Building
+
 If you are on an Ubuntu based distro, you can just run the following 
 ```
 sudo apt install meson build-essential libglib2.0-dev libglib2.0-dev-bin libdbus-1-dev libssl-dev libcairo2-dev libpango1.0-dev libatk1.0-dev libgdk-pixbuf2.0-dev libgtk-3-dev cargo rustc
 ```
 
-#### Build Instructions
-
-To build manually you need to provide an access token from [here](https://genius.com/api-clients). Then put it in a file named `secret` in the project root.
+**Note:** To build manually you need to provide an access token from [here](https://genius.com/api-clients). Then put it in a file named `secret` in the project root.
 
 ```
 meson build --prefix=/usr
@@ -68,11 +108,6 @@ ninja
 Run with
 ```
 ./com.github.onsah.sync-lyrics
-```
-
-To install
-```
-ninja install
 ```
 
 ## TODO

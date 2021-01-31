@@ -1,8 +1,6 @@
 use glib::IsA;
 use gtk::{Adjustment, ContainerExt, LabelExt, SpinnerExt, StackExt, Widget, WidgetExt};
 
-use crate::lyrics;
-
 pub struct LyricsView {
     container: gtk::Box,
     title_label: gtk::Label,

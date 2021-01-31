@@ -1,0 +1,107 @@
+{
+    "app-id": "io.github.onsah.SyncLyrics",
+    "command": "com.github.onsah.SyncLyrics",
+    "runtime": "org.freedesktop.Platform",
+    "sdk": "org.freedesktop.Sdk",
+    "rename-desktop-file": "com.github.onsah.SyncLyrics.desktop",
+    "sdk-extensions": [
+        "org.freedesktop.Sdk.Extension.rust-stable"
+    ],
+    "runtime-version": "20.08",
+    "separate-locales": false,
+    "cleanup": [
+        "/cache",
+        "/man",
+        "/share/aclocal",
+        "/share/devhelp",
+        "/share/gtk-doc",
+        "/share/man",
+        "/lib/systemd",
+        "*.la",
+        "*.a"
+    ],
+    "finish-args": [
+        "--share=network",
+        "--share=ipc",
+        "--socket=x11",
+        "--socket=fallback-x11",
+        "--socket=session-bus"
+    ],
+    "build-options": {
+        "append-path": "/usr/lib/sdk/rust-stable/bin",
+        "cflags": "-DGDK_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED",
+        "build-args" : [
+            "--share=network"
+        ],
+        "env": {
+            "CARGO_HOME": "/run/build/sync-lyrics/cargo",
+            "RUSTFLAGS": "",
+            "RUST_BACKTRACE": "1",
+            "RUST_LOG": "sync-lyrics_gtk=debug,sync-lyrics_data=debug,glib=debug",
+            "G_MESSAGES_DEBUG" : "none",
+            "G_ENABLE_DIAGNOSTIC": "1"
+        }
+    },
+    "modules": [
+        {
+            "name": "gobject-introspection",
+            "buildsystem": "meson",
+            "cleanup-platform": [
+                "*",
+                "/lib/*/gobject-introspection/giscanner",
+                "/share/gobject-introspection/giscanner",
+                "/bin"
+            ],
+            "ensure-writable": [
+                "/lib/*/gobject-introspection/giscanner/*.pyc",
+                "/lib/*/gobject-introspection/giscanner/*/*.pyc"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://download.gnome.org/sources/gobject-introspection/1.66/gobject-introspection-1.66.1.tar.xz",
+                    "sha256": "dd44a55ee5f426ea22b6b89624708f9e8d53f5cc94e5485c15c87cb30e06161d"
+                }
+            ]
+        },
+        {
+            "name": "libgee",
+            "make-install-args": [
+                "girdir=/app/share/gir-1.0",
+                "typelibdir=/app/lib/girepository-1.0"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://download.gnome.org/sources/libgee/0.20/libgee-0.20.3.tar.xz",
+                    "sha256": "d0b5edefc88cbca5f1709d19fa62aef490922c6577a14ac4e7b085507911a5de"
+                }
+            ]
+        },
+        {
+            "name": "elementary-theme",
+            "buildsystem": "meson",
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/elementary/stylesheet/archive/5.4.2.tar.gz",
+                    "sha256": "3bc37723daf4ce0b7c9ce4c125ef0055affe8d6654981388ec87d4a23a1ae0ec"
+                }
+            ]
+        },
+        {
+            "name": "sync-lyrics",
+            "buildsystem": "meson",
+            "builddir": true,
+            "config-opts": [
+                "-Dprofile=development"
+            ],
+            "sources": [
+                {
+                    "type": "dir",
+                    "path": "./"
+                }
+            ]
+        }
+    ]
+}

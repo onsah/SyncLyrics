@@ -1,5 +1,5 @@
 project(
-    'com.github.onsah.sync-lyrics', 
+    'com.github.onsah.SyncLyrics', 
     'rust',
     license: 'GPLv3',
 )

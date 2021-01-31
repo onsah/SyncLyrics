@@ -6,6 +6,9 @@
         "**/target/**": true,
         "**/build/**": true,
         "./Cargo.lock": true,
+        "**/build-dir/**": true,
+        "**/.flatpak-builder/**": true,
+        "**/repo/**": true,
     },
     "search.exclude": {
         "**/.git/objects/**": true,

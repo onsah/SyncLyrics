@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>@appid@</id>
+    <name>SyncLyrics</name>
+    <project_license>GPL-3.0</project_license>
+    <metadata_license>CC0-1.0</metadata_license>
+    <content_rating type="oars-1.1" />
+    <summary>Display lyrics from playing song</summary>
+    <description>
+        <p>
+        Display lyrics from playing song on Spotify
+    </p>
+    </description>
+    <url type="homepage">https://github.com/onsah/SyncLyrics</url>
+    <screenshots>
+        <screenshot>
+            <image>https://github.com/onsah/SyncLyrics/blob/main/assets/screenshot-dark.png</image>
+        </screenshot>
+        <screenshot>
+            <image>https://github.com/onsah/SyncLyrics/blob/main/assets/screenshot-light.png</image>
+        </screenshot>
+    </screenshots>
+    <releases>
+        <release version="0.0.3-alpha" date="2021-01-28">
+            <description>
+                <ul>
+                    <li>Now uses Genius as lyrics provider</li>
+                    <li>Loading animation during fetching lyrics</li>
+                </ul>
+            </description>
+        </release>
+        <release version="0.0.2-alpha" date="2021-01-25">
+            <description>
+                <ul>
+                    <li>Fixed app's crashing when Spotify is not open closes: Bug#1</li>
+                    <li>Fixed initially theme is not being in sync with the system closes: Bug#2</li>
+                </ul>
+            </description>
+        </release>
+        <release version="0.0.1-alpha" date="2021-01-23">
+            <description>
+                <p>
+                    Initial release
+                </p>
+            </description>
+        </release>
+    </releases>
+    <kudos></kudos>
+    <launchable type="desktop-id">@appid@.desktop</launchable>
+    <!--  <url type="homepage">https://wiki.gnome.org/Apps/Podcasts</url>
+  <url type="bugtracker">https://gitlab.gnome.org/World/podcasts/issues/</url>
+  <url type="donation">http://www.gnome.org/friends/</url>
+  <translation type="gettext">gnome-podcasts</translation>
+  <project_group>GNOME</project_group> -->
+    <update_contact>sahinonur2000@hotmail.com</update_contact>
+    <developer_name>Onur Sahin</developer_name>
+</component>
