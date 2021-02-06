@@ -1,5 +1,5 @@
 use glib::IsA;
-use gtk::{Adjustment, ContainerExt, LabelExt, SpinnerExt, StackExt, Widget, WidgetExt};
+use gtk::{Adjustment, ContainerExt, Justification, LabelExt, SpinnerExt, StackExt, StyleContextExt, Widget, WidgetExt};
 
 pub struct LyricsView {
     container: gtk::Box,
@@ -12,8 +12,8 @@ pub struct LyricsView {
 
 impl LyricsView {
     pub fn new() -> Self {
-        let title_label = gtk::Label::new(Some("This should change"));
-        let artist_label = gtk::Label::new(Some("This should change"));
+        let title_label = gtk::Label::new(Some(""));
+        let artist_label = gtk::Label::new(Some(""));
         let separator = gtk::Separator::new(gtk::Orientation::Horizontal);
         let lyrics_label = gtk::Label::new(Some(""));
 
@@ -40,6 +40,17 @@ impl LyricsView {
 
         let stack = gtk::Stack::new();
 
+        // TODO: get welcome screen, etc.
+
+        // Open spotify screen
+        let label = gtk::Label::new(Some("Spotify is not detected"));
+        label.set_justify(gtk::Justification::Center);
+        label.set_hexpand(true);
+        label.get_style_context().add_class("h1");
+
+        stack.add_named(&label, "connecting");
+
+        // Fetching lyrics screen
         let spinner = gtk::Spinner::new();
         spinner.set_size_request(75, 75);
         spinner.set_halign(gtk::Align::Center);
@@ -56,7 +67,7 @@ impl LyricsView {
 
         stack.add_named(&label_scroller, "lyrics");
 
-        stack.set_visible_child_name("spinner");
+        stack.set_visible_child_name("connecting");
 
         container.add(&stack);
 
