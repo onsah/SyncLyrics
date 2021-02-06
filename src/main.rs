@@ -9,6 +9,7 @@ mod listener;
 mod lyrics;
 mod style;
 mod widgets;
+mod app_state;
 
 #[tokio::main]
 async fn main() {

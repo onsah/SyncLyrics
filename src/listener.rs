@@ -8,15 +8,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::{sync::Mutex, time::sleep};
 
+use crate::app_state::{AppState, AppStateWrapper};
+
 pub struct Listener {
     connection: Connection,
-}
-
-#[derive(Clone)]
-pub struct SongInfo {
-    pub song_title: String,
-    pub artist_name: String,
-    pub pull_lyrics: Option<String>,
 }
 
 struct PropertiesChanged {
@@ -25,7 +20,7 @@ struct PropertiesChanged {
     pub artist: Option<String>,
 }
 
-impl Default for SongInfo {
+/* impl Default for SongInfo {
     fn default() -> Self {
         SongInfo {
             song_title: "untitled".to_string(),
@@ -33,7 +28,7 @@ impl Default for SongInfo {
             pull_lyrics: None,
         }
     }
-}
+} */
 
 impl arg::ReadAll for PropertiesChanged {
     fn read<'a>(i: &mut arg::Iter) -> Result<Self, arg::TypeMismatchError> {
@@ -97,13 +92,13 @@ impl Listener {
         }
     }
 
-    pub async fn connect_signal_loop(&self, song_info: Arc<Mutex<SongInfo>>) {
-        while !self.connect_signal(Arc::clone(&song_info)).await.is_some() {
+    pub async fn connect_signal_loop(&self, app_state: AppStateWrapper) {
+        while !self.connect_signal(Arc::clone(&app_state)).await.is_some() {
             sleep(Duration::from_millis(250)).await;
         }
     }
 
-    async fn connect_signal(&self, song_info: Arc<Mutex<SongInfo>>) -> Option<()> {
+    async fn connect_signal(&self, app_state: AppStateWrapper) -> Option<()> {
         let proxy = self.connection.with_proxy(
             "org.mpris.MediaPlayer2.spotify",
             "/org/mpris/MediaPlayer2",
@@ -123,7 +118,7 @@ impl Listener {
                     Some(s.as_iter()?.next()?.as_iter()?.next()?.as_str()?.to_owned())
                 });
                 match (title, artist) {
-                    (Some(song_title), Some(artist_name)) => match song_info.try_lock() {
+                    (Some(song_title), Some(artist_name)) => match app_state.try_lock() {
                         Ok(mut guard) => {
                             // Sometimes empty song is passed which causes crash
                             Self::set_if_valid(&mut guard, &song_title, &artist_name);
@@ -134,12 +129,12 @@ impl Listener {
                 }
 
                 {
-                    let song_info = Arc::clone(&song_info);
+                    let app_state = Arc::clone(&app_state);
                     let _id = proxy.match_signal(
                         move |p: PropertiesChanged, _: &Connection, _: &Message| {
                             println!("{:#?} - {:#?}", p.title, p.artist);
                             match (p.title, p.artist) {
-                                (Some(song_title), Some(artist_name)) => match song_info.try_lock()
+                                (Some(song_title), Some(artist_name)) => match app_state.try_lock()
                                 {
                                     Ok(mut guard) => {
                                         Self::set_if_valid(&mut guard, &song_title, &artist_name);
@@ -159,14 +154,19 @@ impl Listener {
         }
     }
 
-    fn set_if_valid(song_info: &mut SongInfo, song_title: &str, artist_name: &str) {
-        if !song_title.is_empty() && &song_info.song_title != song_title {
-            println!("song changed to: {}", song_title);
-            *song_info = SongInfo {
-                song_title: song_title.into(),
-                artist_name: artist_name.into(),
-                pull_lyrics: None,
-            };
+    fn set_if_valid(app_state: &mut AppState, new_song_name: &str, new_artist_name: &str) {
+        if new_song_name.is_empty() {
+
+        } else {
+            let should_change = app_state.is_different(new_song_name, new_artist_name);
+
+            if should_change {
+                println!("song changed to: {}", new_song_name);
+                *app_state = AppState::FetchingLyrics {
+                    song_name: new_song_name.to_string(),
+                    artist_name: new_artist_name.to_string(),
+                };
+            }
         }
     }
 
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn listener_works() -> Result<(), Box<dyn std::error::Error>> {
         executor::block_on(async {
-            let song_info = Arc::from(Mutex::from(SongInfo::default()));
+            let song_info = Arc::from(Mutex::from(AppState::Connecting));
             let listener = Listener::new();
 
             assert!(listener.connect_signal(song_info).await.is_some());

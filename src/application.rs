@@ -5,20 +5,16 @@ use futures::{
 };
 use glib::Continue;
 use gtk::{ApplicationWindow, ContainerExt, GtkWindowExt, Inhibit, WidgetExt};
-use std::{sync::Arc, time::Duration};
+use std::{borrow::Borrow, ops::Deref, sync::Arc, time::Duration, unreachable};
 use tokio::{sync::Mutex, time::sleep};
 
-use crate::{
-    listener::{Listener, SongInfo},
-    lyrics::genius::Genius,
-    widgets::{HeaderBar, LyricsView},
-};
+use crate::{app_state::AppState, listener::Listener, lyrics::genius::Genius, widgets::{HeaderBar, LyricsView}};
 
 pub struct LyricsApplication {
     window: gtk::ApplicationWindow,
     headerbar: HeaderBar,
     lyrics_view: LyricsView,
-    song_info: SongInfo,
+    app_state: AppState
 }
 
 impl LyricsApplication {
@@ -29,7 +25,7 @@ impl LyricsApplication {
             window: window.clone(),
             headerbar: HeaderBar::new(window),
             lyrics_view: LyricsView::new(),
-            song_info: SongInfo::default(),
+            app_state: AppState::Connecting,
         };
 
         app.build_ui();
@@ -48,13 +44,13 @@ impl LyricsApplication {
 
         self.window.add(self.lyrics_view.as_widget());
 
-        self.update(SongInfo::default());
+        // self.update(SongInfo::default());
 
         self.window.show_all();
     }
 
     pub fn mount_listener(self) {
-        let song_info = Arc::from(Mutex::from(SongInfo::default()));
+        let song_info = Arc::from(Mutex::from(AppState::Connecting));
 
         self.song_info_start_listening(Arc::clone(&song_info));
 
@@ -65,7 +61,7 @@ impl LyricsApplication {
      * Checks and updates if detected song is changed
      * Can't make async because gtk widgets are not Send
      */
-    fn start_update_listener(mut self, song_info: Arc<Mutex<SongInfo>>) {
+    fn start_update_listener(mut self, song_info: Arc<Mutex<AppState>>) {
         glib::timeout_add_local(50, move || {
             match song_info.try_lock() {
                 Ok(song_info) => {
@@ -81,7 +77,7 @@ impl LyricsApplication {
     /**
      * Listens currently played song. If it changes it retrieves its lyrics as well
      */
-    fn song_info_start_listening(&self, song_info: Arc<Mutex<SongInfo>>) {
+    fn song_info_start_listening(&self, song_info: Arc<Mutex<AppState>>) {
         // This allows aborting it when window is closed
         let abort_handle = Self::spawn_as_abortable(Self::song_info_listener_loop(song_info));
 
@@ -104,43 +100,47 @@ impl LyricsApplication {
     }
 
     // Listen to spotify changes
-    async fn song_info_listener_loop(song_info: Arc<Mutex<SongInfo>>) {
+    async fn song_info_listener_loop(app_state: Arc<Mutex<AppState>>) {
         let mut listen = Listener::new();
 
-        executor::block_on(listen.connect_signal_loop(Arc::clone(&song_info)));
+        executor::block_on(listen.connect_signal_loop(Arc::clone(&app_state)));
 
         let mut lyrics_fetcher = Genius::new();
 
         {
-            let song_info = Arc::clone(&song_info);
+            let app_state = Arc::clone(&app_state);
             loop {
                 listen.listen();
 
-                let song_info_guard = song_info.lock().await;
+                let app_state_guard = app_state.lock().await;
 
-                if song_info_guard.pull_lyrics.is_none() {
+                if let AppState::FetchingLyrics {
+                    song_name, artist_name
+                } = &*app_state_guard {
                     println!(
                         "Changed to: {} - {}",
-                        song_info_guard.song_title, song_info_guard.artist_name
+                        song_name, artist_name
                     );
 
-                    let (song_title, artist_name) = (
-                        song_info_guard.song_title.to_string(),
-                        song_info_guard.artist_name.to_string(),
+                    let (song_name, artist_name) = (
+                        song_name.to_string(),
+                        artist_name.to_string(),
                     );
 
                     // No need to lock during web request
-                    drop(song_info_guard);
+                    drop(app_state_guard);
 
-                    let lyrics = lyrics_fetcher.get_lyrics(&song_title, &artist_name).await;
+                    let lyrics = lyrics_fetcher.get_lyrics(&song_name, &artist_name).await;
 
-                    let mut song_info = song_info.lock().await;
+                    let mut app_state_guard = app_state.lock().await;
 
-                    song_info.pull_lyrics = Some(
-                        lyrics
+                    *app_state_guard = AppState::LyricsFetched {
+                        song_name, 
+                        artist_name,
+                        lyrics: lyrics
                             .map(|l| l.lyrics)
                             .unwrap_or("Lyrics not available".into()),
-                    );
+                    };
                 } else {
                     // no lyrics to be pulled, can sleep a bit
                     sleep(Duration::from_millis(50)).await;
@@ -149,23 +149,36 @@ impl LyricsApplication {
         }
     }
 
-    pub fn update(&mut self, song_info: SongInfo) {
-        match song_info.pull_lyrics.as_ref() {
-            Some(lyrics) => {
-                if self.song_info.pull_lyrics.is_none() {
+    pub fn update(&mut self, app_state: AppState) {
+        match &app_state {
+            AppState::LyricsFetched { lyrics, .. } => {
+                if self.app_state.fetched() {
                     self.lyrics_view.set_lyrics(lyrics.as_str());
                 }
-            }
-            None => {
-                if self.song_info.song_title != song_info.song_title
-                    || self.song_info.artist_name != song_info.artist_name
+            },
+            AppState::FetchingLyrics { song_name, artist_name } => {
+                /* let (curr_song_name, curr_artist_name) = match &self.app_state {
+                        AppState::FetchingLyrics { song_name, artist_name } | 
+                        AppState::LyricsFetched { song_name, artist_name, .. } => (song_name, artist_name),
+                        AppState::Connecting => unreachable!()
+                    };
+                if curr_song_name != song_name
+                    || curr_artist_name != artist_name
                 {
                     self.lyrics_view
-                        .song_changed(&song_info.song_title, &song_info.artist_name);
+                        .song_changed(&song_name, &artist_name);
+                } */
+
+                let should_change = self.app_state.is_different(song_name, artist_name);
+
+                if should_change {
+                    self.lyrics_view
+                        .song_changed(song_name, artist_name);
                 }
-            }
+            },
+            AppState::Connecting => (),
         }
 
-        self.song_info = song_info;
+        self.app_state = app_state;
     }
 }
