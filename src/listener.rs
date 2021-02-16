@@ -156,7 +156,6 @@ impl Listener {
 
     fn set_if_valid(app_state: &mut AppState, new_song_name: &str, new_artist_name: &str) {
         if new_song_name.is_empty() {
-
         } else {
             let should_change = app_state.is_different(new_song_name, new_artist_name);
 

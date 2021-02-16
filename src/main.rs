@@ -4,12 +4,12 @@ use gtk::prelude::*;
 
 use style::STYLE;
 
+mod app_state;
 mod application;
 mod listener;
 mod lyrics;
 mod style;
 mod widgets;
-mod app_state;
 
 #[tokio::main]
 async fn main() {

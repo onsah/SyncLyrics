@@ -8,13 +8,18 @@ use gtk::{ApplicationWindow, ContainerExt, GtkWindowExt, Inhibit, WidgetExt};
 use std::{borrow::Borrow, ops::Deref, sync::Arc, time::Duration, unreachable};
 use tokio::{sync::Mutex, time::sleep};
 
-use crate::{app_state::AppState, listener::Listener, lyrics::genius::Genius, widgets::{HeaderBar, LyricsView}};
+use crate::{
+    app_state::AppState,
+    listener::Listener,
+    lyrics::genius::Genius,
+    widgets::{HeaderBar, LyricsView},
+};
 
 pub struct LyricsApplication {
     window: gtk::ApplicationWindow,
     headerbar: HeaderBar,
     lyrics_view: LyricsView,
-    app_state: AppState
+    app_state: AppState,
 }
 
 impl LyricsApplication {
@@ -43,8 +48,6 @@ impl LyricsApplication {
         self.window.set_titlebar(Some(&self.headerbar.container));
 
         self.window.add(self.lyrics_view.as_widget());
-
-        // self.update(SongInfo::default());
 
         self.window.show_all();
     }
@@ -115,17 +118,13 @@ impl LyricsApplication {
                 let app_state_guard = app_state.lock().await;
 
                 if let AppState::FetchingLyrics {
-                    song_name, artist_name
-                } = &*app_state_guard {
-                    println!(
-                        "Changed to: {} - {}",
-                        song_name, artist_name
-                    );
+                    song_name,
+                    artist_name,
+                } = &*app_state_guard
+                {
+                    println!("Changed to: {} - {}", song_name, artist_name);
 
-                    let (song_name, artist_name) = (
-                        song_name.to_string(),
-                        artist_name.to_string(),
-                    );
+                    let (song_name, artist_name) = (song_name.to_string(), artist_name.to_string());
 
                     // No need to lock during web request
                     drop(app_state_guard);
@@ -135,7 +134,7 @@ impl LyricsApplication {
                     let mut app_state_guard = app_state.lock().await;
 
                     *app_state_guard = AppState::LyricsFetched {
-                        song_name, 
+                        song_name,
                         artist_name,
                         lyrics: lyrics
                             .map(|l| l.lyrics)
@@ -155,27 +154,17 @@ impl LyricsApplication {
                 if self.app_state.fetched() {
                     self.lyrics_view.set_lyrics(lyrics.as_str());
                 }
-            },
-            AppState::FetchingLyrics { song_name, artist_name } => {
-                /* let (curr_song_name, curr_artist_name) = match &self.app_state {
-                        AppState::FetchingLyrics { song_name, artist_name } | 
-                        AppState::LyricsFetched { song_name, artist_name, .. } => (song_name, artist_name),
-                        AppState::Connecting => unreachable!()
-                    };
-                if curr_song_name != song_name
-                    || curr_artist_name != artist_name
-                {
-                    self.lyrics_view
-                        .song_changed(&song_name, &artist_name);
-                } */
-
+            }
+            AppState::FetchingLyrics {
+                song_name,
+                artist_name,
+            } => {
                 let should_change = self.app_state.is_different(song_name, artist_name);
 
                 if should_change {
-                    self.lyrics_view
-                        .song_changed(song_name, artist_name);
+                    self.lyrics_view.song_changed(song_name, artist_name);
                 }
-            },
+            }
             AppState::Connecting => (),
         }
 

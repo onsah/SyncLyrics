@@ -1,5 +1,8 @@
 use glib::IsA;
-use gtk::{Adjustment, ContainerExt, Justification, LabelExt, SpinnerExt, StackExt, StyleContextExt, Widget, WidgetExt};
+use gtk::{
+    Adjustment, ContainerExt, ImageExt, Justification, LabelExt, OrientableExt, SpinnerExt,
+    StackExt, StyleContextExt, Widget, WidgetExt,
+};
 
 pub struct LyricsView {
     container: gtk::Box,
@@ -12,10 +15,21 @@ pub struct LyricsView {
 
 impl LyricsView {
     pub fn new() -> Self {
+        let top_container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+
+        let cover_image_view = gtk::Image::new();
+        cover_image_view.set_from_icon_name(Some("folder-music-symbolic"), gtk::IconSize::Dialog);
+        cover_image_view.set_size_request(50, 50);
+        top_container.add(&cover_image_view);
+
         let title_label = gtk::Label::new(Some(""));
         let artist_label = gtk::Label::new(Some(""));
-        let separator = gtk::Separator::new(gtk::Orientation::Horizontal);
-        let lyrics_label = gtk::Label::new(Some(""));
+        let text_container = gtk::Box::new(gtk::Orientation::Vertical, 5);
+
+        text_container.add(&title_label);
+        text_container.add(&artist_label);
+
+        top_container.add(&text_container);
 
         title_label.set_halign(gtk::Align::Start);
         title_label.set_margin_start(15);
@@ -23,9 +37,10 @@ impl LyricsView {
         artist_label.set_halign(gtk::Align::Start);
         artist_label.set_margin_start(15);
 
+        let separator = gtk::Separator::new(gtk::Orientation::Horizontal);
+        let lyrics_label = gtk::Label::new(Some(""));
+
         lyrics_label.set_halign(gtk::Align::Start);
-        lyrics_label.set_margin_start(15);
-        lyrics_label.set_margin_end(15);
         lyrics_label.set_line_wrap(true);
 
         separator.set_hexpand(true);
@@ -34,8 +49,9 @@ impl LyricsView {
 
         let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
         container.set_size_request(400, 500);
-        container.add(&title_label);
-        container.add(&artist_label);
+        container.set_margin_start(15);
+        container.set_margin_end(15);
+        container.add(&top_container);
         container.add(&separator);
 
         let stack = gtk::Stack::new();
@@ -43,13 +59,7 @@ impl LyricsView {
         // TODO: get welcome screen, etc.
 
         // Open spotify screen
-        let label = gtk::Label::new(Some("Spotify is not detected"));
-        label.set_justify(gtk::Justification::Center);
-        label.set_hexpand(true);
-        label.get_style_context().add_class("h1");
-
-        stack.add_named(&label, "connecting");
-
+        stack.add_named(&Self::get_not_connected_view(), "connecting");
         // Fetching lyrics screen
         let spinner = gtk::Spinner::new();
         spinner.set_size_request(75, 75);
@@ -93,6 +103,29 @@ impl LyricsView {
 
         self.spinner.start();
         self.stack.set_visible_child_name("spinner");
+    }
+
+    fn get_not_connected_view() -> impl IsA<Widget> {
+        let title = gtk::Label::new(Some("Spotify is not detected"));
+        title.set_justify(gtk::Justification::Center);
+        title.set_hexpand(true);
+        title.get_style_context().add_class("h1");
+
+        let subtitle = gtk::Label::new(Some("You should launch Spotify"));
+        subtitle.set_justify(gtk::Justification::Center);
+        subtitle.set_hexpand(true);
+        subtitle.get_style_context().add_class("h2");
+
+        let content = gtk::Grid::new();
+        content.set_hexpand(true);
+        content.set_vexpand(true);
+        content.set_orientation(gtk::Orientation::Vertical);
+        content.set_valign(gtk::Align::Center);
+
+        content.add(&title);
+        content.add(&subtitle);
+
+        content
     }
 
     fn set_song_title(&mut self, song_title: &str) {
