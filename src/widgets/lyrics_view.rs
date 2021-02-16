@@ -1,57 +1,77 @@
+use std::io::Cursor;
+
+use gdk_pixbuf::{Pixbuf, PixbufLoader, PixbufLoaderExt};
 use glib::IsA;
-use gtk::{
-    Adjustment, ContainerExt, ImageExt, Justification, LabelExt, OrientableExt, SpinnerExt,
-    StackExt, StyleContextExt, Widget, WidgetExt,
-};
+use gtk::{Adjustment, ContainerExt, Image, ImageExt, Justification, LabelExt, OrientableExt, OverlayExt, SpinnerExt, StackExt, StyleContextExt, Widget, WidgetExt};
+use image::ImageOutputFormat;
 
 pub struct LyricsView {
     container: gtk::Box,
     title_label: gtk::Label,
     artist_label: gtk::Label,
+    cover_image: gtk::Image,
+    background_image: gtk::Image,
     lyrics_label: gtk::Label,
     spinner: gtk::Spinner,
     stack: gtk::Stack,
 }
 
 impl LyricsView {
-    pub fn new() -> Self {
-        let top_container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
 
-        let cover_image_view = gtk::Image::new();
-        cover_image_view.set_from_icon_name(Some("folder-music-symbolic"), gtk::IconSize::Dialog);
-        cover_image_view.set_size_request(50, 50);
-        top_container.add(&cover_image_view);
+    const COVER_IMAGE_SIZE: i32 = 75;
+    const NO_COVER_ICON_NAME: &'static str = "folder-music-symbolic";
+
+    pub fn new() -> Self {
+        let top_overlay = gtk::Overlay::new();
+        top_overlay.set_property_height_request(90);
+        
+        let background_image = gtk::Image::new();
+        background_image.set_visible(false);
+        background_image.set_opacity(0.6);
+
+        let top_container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+        top_container.set_margin_start(15);
+        top_container.set_margin_end(15);
+
+        let cover_image = gtk::Image::new();
+        cover_image.set_from_icon_name(Some(Self::NO_COVER_ICON_NAME), gtk::IconSize::Dialog);
+        cover_image.set_size_request(Self::COVER_IMAGE_SIZE, Self::COVER_IMAGE_SIZE);
+        top_container.add(&cover_image);
 
         let title_label = gtk::Label::new(Some(""));
+        title_label.set_halign(gtk::Align::Start);
+        title_label.set_margin_start(15);
+        
         let artist_label = gtk::Label::new(Some(""));
+        artist_label.set_halign(gtk::Align::Start);
+        artist_label.set_margin_start(15);
+        
         let text_container = gtk::Box::new(gtk::Orientation::Vertical, 5);
+        text_container.set_margin_top(15);
 
         text_container.add(&title_label);
         text_container.add(&artist_label);
 
         top_container.add(&text_container);
 
-        title_label.set_halign(gtk::Align::Start);
-        title_label.set_margin_start(15);
-
-        artist_label.set_halign(gtk::Align::Start);
-        artist_label.set_margin_start(15);
+        top_overlay.add_overlay(&background_image);
+        top_overlay.add_overlay(&top_container);
 
         let separator = gtk::Separator::new(gtk::Orientation::Horizontal);
         let lyrics_label = gtk::Label::new(Some(""));
 
         lyrics_label.set_halign(gtk::Align::Start);
         lyrics_label.set_line_wrap(true);
+        lyrics_label.set_margin_start(15);
+        lyrics_label.set_margin_end(15);
 
         separator.set_hexpand(true);
         separator.set_margin_bottom(10);
-        separator.set_margin_top(10);
 
         let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
         container.set_size_request(400, 500);
-        container.set_margin_start(15);
-        container.set_margin_end(15);
-        container.add(&top_container);
+        container.set_hexpand(true);
+        container.add(&top_overlay);
         container.add(&separator);
 
         let stack = gtk::Stack::new();
@@ -87,6 +107,8 @@ impl LyricsView {
             container,
             title_label,
             artist_label,
+            cover_image,
+            background_image,
             lyrics_label,
             spinner,
             stack,
@@ -100,9 +122,20 @@ impl LyricsView {
     pub fn song_changed(&mut self, song_title: &str, artist_name: &str) {
         self.set_song_title(song_title);
         self.set_artist(artist_name);
+        self.cover_image.set_from_icon_name(Some(Self::NO_COVER_ICON_NAME), gtk::IconSize::Dialog);
+        self.background_image.set_visible(false);
 
         self.spinner.start();
         self.stack.set_visible_child_name("spinner");
+    }
+
+    pub fn song_data_retrieved(&mut self, lyrics: &str, cover_art: Option<&[u8]>) {
+        self.set_lyrics(lyrics);
+        if let Some(cover_art) = cover_art {
+            self.set_cover_art(cover_art);
+        }
+        self.spinner.stop();
+        self.stack.set_visible_child_name("lyrics");
     }
 
     fn get_not_connected_view() -> impl IsA<Widget> {
@@ -147,8 +180,46 @@ impl LyricsView {
             "<span size=\"large\">{}</span>",
             Self::escape_markup(lyrics)
         ));
-        self.spinner.stop();
-        self.stack.set_visible_child_name("lyrics");
+        /* self.spinner.stop();
+        self.stack.set_visible_child_name("lyrics"); */
+    }
+
+    fn set_cover_art(&mut self, cover_art: &[u8]) {
+        // Cover image
+        /* let loader = gdk_pixbuf::PixbufLoader::new();
+        loader.set_size(Self::COVER_IMAGE_SIZE, Self::COVER_IMAGE_SIZE);
+        loader.write(cover_art).unwrap();
+        loader.close().unwrap();
+
+        if let Some(pixbuf) = loader.get_pixbuf() {
+            self.cover_image.set_from_pixbuf(Some(&pixbuf));
+        } */
+        self.cover_image.set_from_pixbuf(Some(&Self::raw_to_pixbuf(cover_art, Self::COVER_IMAGE_SIZE, Self::COVER_IMAGE_SIZE)));
+
+        // Background
+        let img = image::load_from_memory(cover_art).unwrap()
+            .thumbnail(300, 300);
+            // .crop(0, 150 - 45, 300, 110);
+
+        let img = img.blur(4.0);
+
+        let mut buffer = Vec::new();
+        img.write_to(&mut buffer, ImageOutputFormat::Png).unwrap();
+
+        let pixbuf = Self::raw_to_pixbuf(&buffer, 450, 450)
+            .new_subpixbuf(0, 180, 450, 110).unwrap();
+
+        self.background_image.set_from_pixbuf(Some(&pixbuf));
+        self.background_image.set_visible(true);
+    }
+
+    fn raw_to_pixbuf(buffer: &[u8], width: i32, height: i32) -> Pixbuf {
+        let loader = gdk_pixbuf::PixbufLoader::new();
+        loader.set_size(width, height);
+        loader.write(buffer).unwrap();
+        loader.close().unwrap();
+
+        loader.get_pixbuf().unwrap()
     }
 
     fn escape_markup(text: &str) -> String {

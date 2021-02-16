@@ -13,6 +13,7 @@ pub enum AppState {
         song_name: String,
         artist_name: String,
         lyrics: String,
+        cover_art: Option<Vec<u8>>,
     },
 }
 

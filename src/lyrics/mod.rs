@@ -13,11 +13,10 @@ pub struct LyricsResponse {
     pub artist: String,
     pub track: String,
     pub lyrics: String,
-    pub copyright_notice: String,
+    pub cover_art: Vec<u8>,
 }
 
 #[derive(Debug)]
 pub enum LyricsError {
-    /** Song does not have lyrics */
-    NoLyrics,
+
 }

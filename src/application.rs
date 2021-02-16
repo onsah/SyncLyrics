@@ -39,7 +39,7 @@ impl LyricsApplication {
     }
 
     pub fn build_ui(&mut self) {
-        self.window.set_border_width(10);
+        self.window.set_border_width(0);
         self.window.set_position(gtk::WindowPosition::Center);
         self.window.set_resizable(false);
         self.window.set_hexpand(false);
@@ -133,12 +133,16 @@ impl LyricsApplication {
 
                     let mut app_state_guard = app_state.lock().await;
 
+                    let (lyrics, cover_art) = match lyrics {
+                        Ok(result) => (result.lyrics, Some(result.cover_art)),
+                        _ => ("Lyrics not available".into(), None)
+                    };
+
                     *app_state_guard = AppState::LyricsFetched {
                         song_name,
                         artist_name,
-                        lyrics: lyrics
-                            .map(|l| l.lyrics)
-                            .unwrap_or("Lyrics not available".into()),
+                        lyrics,
+                        cover_art, 
                     };
                 } else {
                     // no lyrics to be pulled, can sleep a bit
@@ -150,9 +154,9 @@ impl LyricsApplication {
 
     pub fn update(&mut self, app_state: AppState) {
         match &app_state {
-            AppState::LyricsFetched { lyrics, .. } => {
+            AppState::LyricsFetched { lyrics, cover_art, .. } => {
                 if self.app_state.fetched() {
-                    self.lyrics_view.set_lyrics(lyrics.as_str());
+                    self.lyrics_view.song_data_retrieved(lyrics, cover_art.as_deref());
                 }
             }
             AppState::FetchingLyrics {

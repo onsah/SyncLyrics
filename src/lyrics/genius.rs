@@ -1,3 +1,5 @@
+use std::usize;
+
 use reqwest::Client;
 use scraper::{Html, Selector};
 use serde_derive::{Deserialize, Serialize};
@@ -6,6 +8,28 @@ use super::{LyricsResponse, LyricsResult};
 
 static BASE_ENDPOINT: &'static str = "https://api.genius.com/";
 static ACCESS_TOKEN: &'static str = env!("ACCESS_TOKEN");
+
+#[derive(Serialize, Deserialize, Debug)]
+struct SongResponseWrapper {
+    response: SongResponse,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct SongResponse {
+    song: SongResponseData,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct SongResponseData {
+    title: String,
+    url: String,
+    album: SongResponseAlbum,                                                             
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct SongResponseAlbum {
+    cover_art_url: String,
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct SearchResponse {
@@ -26,9 +50,7 @@ struct SearchResponseEntry {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct SearchResponseResult {
-    full_title: String,
-    title: String,
-    url: String,
+    id: usize,
 }
 
 pub struct Genius {
@@ -43,12 +65,18 @@ impl Genius {
     }
 
     pub async fn get_lyrics(&mut self, song_title: &str, artist: &str) -> LyricsResult {
-        let song_url = self.find_song_url(song_title, artist).await;
+        let song_id = self.request_song_id(song_title, artist).await;
+        println!("song id received");
+        let song_info = self.request_song_info(song_id).await;
+        println!("song info received");
+        let song_url = &song_info.url;
+        let cover_art = self.get_cover_art(&song_info.album).await;
+        println!("cover art received");
 
         // Get the page html
         let html = self
             .client
-            .get(&song_url)
+            .get(song_url)
             .send()
             .await
             .unwrap()
@@ -62,15 +90,32 @@ impl Genius {
             track: song_title.into(),
             artist: artist.into(),
             lyrics: lyrics,
-            copyright_notice: "".into(),
+            cover_art,
         })
     }
 
-    async fn find_song_url(&mut self, song_title: &str, artist: &str) -> String {
+    async fn request_song_info(&mut self, song_id: usize) -> SongResponseData {
+        let url = BASE_ENDPOINT.to_string() + "songs/" + &song_id.to_string();
+
+        let resp: SongResponseWrapper = self
+            .client
+            .get(&url)
+            .header("Authorization", "Bearer ".to_string() + ACCESS_TOKEN)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+
+        resp.response.song
+    }
+
+    async fn request_song_id(&mut self, song_title: &str, artist: &str) -> usize {
         let url = BASE_ENDPOINT.to_string() + "search";
         let query: [(&str, &str); 1] = [("q", &(song_title.to_owned() + " " + artist))];
 
-        let data: SearchResponse = self
+        let resp: SearchResponse = self
             .client
             .get(&url)
             .query(&query)
@@ -82,7 +127,24 @@ impl Genius {
             .await
             .unwrap();
 
-        data.response.hits[0].result.url.clone()
+        resp.response.hits[0].result.id
+    }
+
+    async fn get_cover_art(&mut self, album: &SongResponseAlbum) -> Vec<u8> {
+        // TODO convert this to 300x300 url
+        let url = &album.cover_art_url;
+
+        let resp = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .unwrap()
+            .bytes()
+            .await
+            .unwrap();
+
+        resp.into_iter().collect()
     }
 
     fn extract_lyrics(html: String) -> String {
@@ -116,7 +178,9 @@ mod tests {
     async fn find_songpage_works() {
         let mut genius = Genius::new();
 
-        let found = genius.find_song_url("HUMBLE", "Kendrick Lamar").await;
+        let song_id = genius.request_song_id("HUMBLE", "Kendrick Lamar").await;
+        let song_info = genius.request_song_info(song_id).await;
+        let found = song_info.url;
         assert_eq!(&found, "https://genius.com/Kendrick-lamar-humble-lyrics");
     }
 
