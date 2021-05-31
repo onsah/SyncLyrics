@@ -143,16 +143,16 @@ impl LyricsApplication {
 
                 } else {
                     // no lyrics to be pulled, can sleep a bit
-                    sleep(Duration::from_millis(50)).await;
+                    sleep(Duration::from_millis(150)).await;
                 }
             }
         }
     }
 
-    pub fn update(&mut self, app_state: AppState) {
-        match &app_state {
+    pub fn update(&mut self, new_app_state: AppState) {
+        match &new_app_state {
             AppState::LyricsFetched { lyrics, cover_art, .. } => {
-                if self.app_state.fetched() {
+                if !self.app_state.fetched() {
                     self.lyrics_view.song_data_retrieved(lyrics, cover_art.as_deref());
                 }
             }
@@ -170,6 +170,6 @@ impl LyricsApplication {
             AppState::NetworkFailed => self.lyrics_view.network_failed(),
         }
 
-        self.app_state = app_state;
+        self.app_state = new_app_state;
     }
 }
