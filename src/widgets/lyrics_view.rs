@@ -16,6 +16,8 @@ pub struct LyricsView {
     stack: gtk::Stack,
 }
 
+const NETWORK_ERROR_VIEW_NAME: &'static str = "network_error";
+
 impl LyricsView {
 
     const COVER_IMAGE_SIZE: i32 = 75;
@@ -80,6 +82,11 @@ impl LyricsView {
 
         // Open spotify screen
         stack.add_named(&Self::get_not_connected_view(), "connecting");
+        
+        let network_error_view = Self::title_with_subtitle("Network error", "Check your internet connection");
+
+        stack.add_named(&network_error_view, NETWORK_ERROR_VIEW_NAME);
+        
         // Fetching lyrics screen
         let spinner = gtk::Spinner::new();
         spinner.set_size_request(75, 75);
@@ -96,8 +103,6 @@ impl LyricsView {
         label_scroller.add(&lyrics_label);
 
         stack.add_named(&label_scroller, "lyrics");
-
-        stack.set_visible_child_name("connecting");
 
         container.add(&stack);
 
@@ -126,7 +131,7 @@ impl LyricsView {
         self.background_image.set_visible(false);
 
         self.spinner.start();
-        self.stack.set_visible_child_name("spinner");
+        // self.stack.set_visible_child_name("spinner");
     }
 
     pub fn song_data_retrieved(&mut self, lyrics: &str, cover_art: Option<&[u8]>) {
@@ -138,13 +143,22 @@ impl LyricsView {
         self.stack.set_visible_child_name("lyrics");
     }
 
+    pub fn network_failed(&mut self) {
+        self.spinner.stop();
+        self.stack.set_visible_child_name(NETWORK_ERROR_VIEW_NAME);
+    }
+
     fn get_not_connected_view() -> impl IsA<Widget> {
-        let title = gtk::Label::new(Some("Spotify is not detected"));
+        Self::title_with_subtitle("Spotify is not detected", "You should launch Spotify")
+    }
+
+    fn title_with_subtitle(title: &str, subtitle: &str) -> impl IsA<Widget> {
+        let title = gtk::Label::new(Some(title));
         title.set_justify(gtk::Justification::Center);
         title.set_hexpand(true);
         title.get_style_context().add_class("h1");
 
-        let subtitle = gtk::Label::new(Some("You should launch Spotify"));
+        let subtitle = gtk::Label::new(Some(subtitle));
         subtitle.set_justify(gtk::Justification::Center);
         subtitle.set_hexpand(true);
         subtitle.get_style_context().add_class("h2");

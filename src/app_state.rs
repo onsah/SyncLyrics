@@ -15,19 +15,19 @@ pub enum AppState {
         lyrics: String,
         cover_art: Option<Vec<u8>>,
     },
+    NetworkFailed,
 }
 
 impl AppState {
     pub fn fetched(&self) -> bool {
         match self {
-            AppState::Connecting | AppState::FetchingLyrics { .. } => false,
-            _ => true,
+            AppState::LyricsFetched { .. } => true,
+            _ => false
         }
     }
 
     pub fn is_different(&self, new_song_name: &str, new_artist_name: &str) -> bool {
         match self {
-            AppState::Connecting => true,
             AppState::FetchingLyrics {
                 song_name,
                 artist_name,
@@ -37,6 +37,7 @@ impl AppState {
                 artist_name,
                 ..
             } => song_name != new_song_name || artist_name != new_artist_name,
+            _ => true
         }
     }
 }

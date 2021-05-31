@@ -65,12 +65,12 @@ impl Genius {
     }
 
     pub async fn get_lyrics(&mut self, song_title: &str, artist: &str) -> LyricsResult {
-        let song_id = self.request_song_id(song_title, artist).await;
+        let song_id = self.request_song_id(song_title, artist).await?;
         println!("song id received");
-        let song_info = self.request_song_info(song_id).await;
+        let song_info = self.request_song_info(song_id).await?;
         println!("song info received");
         let song_url = &song_info.url;
-        let cover_art = self.get_cover_art(&song_info.album).await;
+        let cover_art = self.get_cover_art(&song_info.album).await?;
         println!("cover art received");
 
         // Get the page html
@@ -78,11 +78,9 @@ impl Genius {
             .client
             .get(song_url)
             .send()
-            .await
-            .unwrap()
+            .await?
             .text()
-            .await
-            .unwrap();
+            .await?;
 
         let lyrics = Genius::extract_lyrics(html);
 
@@ -94,7 +92,7 @@ impl Genius {
         })
     }
 
-    async fn request_song_info(&mut self, song_id: usize) -> SongResponseData {
+    async fn request_song_info(&mut self, song_id: usize) -> LyricsResult<SongResponseData> {
         let url = BASE_ENDPOINT.to_string() + "songs/" + &song_id.to_string();
 
         let resp: SongResponseWrapper = self
@@ -102,16 +100,14 @@ impl Genius {
             .get(&url)
             .header("Authorization", "Bearer ".to_string() + ACCESS_TOKEN)
             .send()
-            .await
-            .unwrap()
+            .await?
             .json()
-            .await
-            .unwrap();
+            .await?;
 
-        resp.response.song
+        Ok(resp.response.song)
     }
 
-    async fn request_song_id(&mut self, song_title: &str, artist: &str) -> usize {
+    async fn request_song_id(&mut self, song_title: &str, artist: &str) -> LyricsResult<usize> {
         let url = BASE_ENDPOINT.to_string() + "search";
         let query: [(&str, &str); 1] = [("q", &(song_title.to_owned() + " " + artist))];
 
@@ -121,16 +117,14 @@ impl Genius {
             .query(&query)
             .header("Authorization", "Bearer ".to_string() + ACCESS_TOKEN)
             .send()
-            .await
-            .unwrap()
+            .await?
             .json()
-            .await
-            .unwrap();
+            .await?;
 
-        resp.response.hits[0].result.id
+        Ok(resp.response.hits[0].result.id)
     }
 
-    async fn get_cover_art(&mut self, album: &SongResponseAlbum) -> Vec<u8> {
+    async fn get_cover_art(&mut self, album: &SongResponseAlbum) -> LyricsResult<Vec<u8>> {
         // TODO convert this to 300x300 url
         let url = &album.cover_art_url;
 
@@ -138,13 +132,11 @@ impl Genius {
             .client
             .get(url)
             .send()
-            .await
-            .unwrap()
+            .await?
             .bytes()
-            .await
-            .unwrap();
+            .await?;
 
-        resp.into_iter().collect()
+        Ok(resp.into_iter().collect())
     }
 
     fn extract_lyrics(html: String) -> String {
@@ -178,8 +170,8 @@ mod tests {
     async fn find_songpage_works() {
         let mut genius = Genius::new();
 
-        let song_id = genius.request_song_id("HUMBLE", "Kendrick Lamar").await;
-        let song_info = genius.request_song_info(song_id).await;
+        let song_id = genius.request_song_id("HUMBLE", "Kendrick Lamar").await.unwrap();
+        let song_info = genius.request_song_info(song_id).await.unwrap();
         let found = song_info.url;
         assert_eq!(&found, "https://genius.com/Kendrick-lamar-humble-lyrics");
     }

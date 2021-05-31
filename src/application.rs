@@ -8,12 +8,7 @@ use gtk::{ApplicationWindow, ContainerExt, GtkWindowExt, Inhibit, WidgetExt};
 use std::{borrow::Borrow, ops::Deref, sync::Arc, time::Duration, unreachable};
 use tokio::{sync::Mutex, time::sleep};
 
-use crate::{
-    app_state::AppState,
-    listener::Listener,
-    lyrics::genius::Genius,
-    widgets::{HeaderBar, LyricsView},
-};
+use crate::{app_state::AppState, listener::Listener, lyrics::{LyricsError, genius::Genius}, widgets::{HeaderBar, LyricsView}};
 
 pub struct LyricsApplication {
     window: gtk::ApplicationWindow,
@@ -133,17 +128,19 @@ impl LyricsApplication {
 
                     let mut app_state_guard = app_state.lock().await;
 
-                    let (lyrics, cover_art) = match lyrics {
-                        Ok(result) => (result.lyrics, Some(result.cover_art)),
-                        _ => ("Lyrics not available".into(), None)
+                    *app_state_guard = match lyrics {
+                        Ok(response) => AppState::LyricsFetched {
+                            song_name,
+                            artist_name,
+                            lyrics: response.lyrics,
+                            cover_art: Some(response.cover_art),
+                        },
+                        Err(err) => match err {
+                            LyricsError::Network(_) => AppState::NetworkFailed,
+                            _ => todo!()
+                        }
                     };
 
-                    *app_state_guard = AppState::LyricsFetched {
-                        song_name,
-                        artist_name,
-                        lyrics,
-                        cover_art, 
-                    };
                 } else {
                     // no lyrics to be pulled, can sleep a bit
                     sleep(Duration::from_millis(50)).await;
@@ -170,6 +167,7 @@ impl LyricsApplication {
                 }
             }
             AppState::Connecting => (),
+            AppState::NetworkFailed => self.lyrics_view.network_failed(),
         }
 
         self.app_state = app_state;
