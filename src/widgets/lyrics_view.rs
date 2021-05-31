@@ -131,7 +131,7 @@ impl LyricsView {
         self.background_image.set_visible(false);
 
         self.spinner.start();
-        // self.stack.set_visible_child_name("spinner");
+        self.stack.set_visible_child_name("spinner");
     }
 
     pub fn song_data_retrieved(&mut self, lyrics: &str, cover_art: Option<&[u8]>) {
