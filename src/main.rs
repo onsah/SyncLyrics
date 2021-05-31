@@ -22,9 +22,8 @@ async fn main() {
     application.connect_activate(|app| {
         setup_style();
 
-        let application = LyricsApplication::new(app);
-
-        application.mount_listener();
+        LyricsApplication::new(app)
+            .mount_listener();
     });
 
     application.run(&[]);
