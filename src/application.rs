@@ -4,7 +4,7 @@ use gtk::{ApplicationWindow, ContainerExt, GtkWindowExt, Inhibit, WidgetExt};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, time::sleep};
 
-use crate::{app_state::AppState, listener::Listener, lyrics::{LyricsError, genius::Genius}, utils::spawn_as_abortable, widgets::{HeaderBar, LyricsView}};
+use crate::{app_state::AppState, spotify_listener::SpotifyListener, lyrics::{LyricsError, genius::Genius}, utils::spawn_as_abortable, widgets::{HeaderBar, LyricsView}};
 
 pub struct LyricsApplication {
     window: gtk::ApplicationWindow,
@@ -46,34 +46,17 @@ impl LyricsApplication {
     pub fn mount_listener(self) {
         let song_info = Arc::from(Mutex::from(AppState::Connecting));
 
-        self.song_info_start_listening(Arc::clone(&song_info));
+        self.connect_spotify_listener_loop(Arc::clone(&song_info));
 
-        self.start_update_listener(song_info);
+        self.connect_ui_updater_loop(song_info);
     }
 
     /**
-     * Checks and updates if detected song is changed
-     * Can't make async because gtk widgets are not Send
+     * Starts the loop so that it will be killed when app exits
      */
-    fn start_update_listener(mut self, song_info: Arc<Mutex<AppState>>) {
-        glib::timeout_add_local(50, move || {
-            match song_info.try_lock() {
-                Ok(song_info) => {
-                    self.update((*song_info).clone());
-                }
-                Err(_) => (/* println!("update_listener: {:?}", e) */),
-            }
-
-            Continue(true)
-        });
-    }
-
-    /**
-     * Listens currently played song. If it changes it retrieves its lyrics as well
-     */
-    fn song_info_start_listening(&self, song_info: Arc<Mutex<AppState>>) {
+    fn connect_spotify_listener_loop(&self, song_info: Arc<Mutex<AppState>>) {
         // This allows aborting it when window is closed
-        let abort_handle = spawn_as_abortable(Self::song_info_listener_loop(song_info));
+        let abort_handle = spawn_as_abortable(Self::spotfy_listener_loop(song_info));
 
         // Terminate the future when window is closed
         self.window.connect_delete_event(move |_, _| {
@@ -82,18 +65,18 @@ impl LyricsApplication {
         });
     }
 
-    // Listen to spotify changes
-    async fn song_info_listener_loop(app_state: Arc<Mutex<AppState>>) {
-        let mut listen = Listener::new();
+    // Listen to spotify changes. If it changes it retrieves its lyrics as well
+    async fn spotfy_listener_loop(app_state: Arc<Mutex<AppState>>) {
+        let mut spotify_listener = SpotifyListener::new();
 
-        executor::block_on(listen.connect_signal_loop(Arc::clone(&app_state)));
+        executor::block_on(spotify_listener.connect_signal_loop(Arc::clone(&app_state)));
 
         let mut lyrics_fetcher = Genius::new();
 
         {
             let app_state = Arc::clone(&app_state);
             loop {
-                listen.listen();
+                spotify_listener.listen();
 
                 let app_state_guard = app_state.lock().await;
 
@@ -134,7 +117,24 @@ impl LyricsApplication {
         }
     }
 
-    pub fn update(&mut self, new_app_state: AppState) {
+    /**
+     * Checks and updates if detected song is changed
+     * Can't make async because gtk widgets are not Send
+     */
+     fn connect_ui_updater_loop(mut self, song_info: Arc<Mutex<AppState>>) {
+        glib::timeout_add_local(50, move || {
+            match song_info.try_lock() {
+                Ok(song_info) => {
+                    self.update_ui((*song_info).clone());
+                }
+                Err(_) => (/* println!("update_listener: {:?}", e) */),
+            }
+
+            Continue(true)
+        });
+    }
+
+    pub fn update_ui(&mut self, new_app_state: AppState) {
         match &new_app_state {
             AppState::LyricsFetched { lyrics, cover_art, .. } => {
                 if !self.app_state.fetched() {

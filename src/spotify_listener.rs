@@ -10,7 +10,7 @@ use tokio::{sync::Mutex, time::sleep};
 
 use crate::app_state::{AppState, AppStateWrapper};
 
-pub struct Listener {
+pub struct SpotifyListener {
     connection: Connection,
 }
 
@@ -85,9 +85,9 @@ impl dbus::message::SignalArgs for PropertiesChanged {
     const INTERFACE: &'static str = "org.freedesktop.DBus.Properties";
 }
 
-impl Listener {
+impl SpotifyListener {
     pub fn new() -> Self {
-        Listener {
+        SpotifyListener {
             connection: Connection::new_session().expect("Couldn't create connection"),
         }
     }
@@ -184,7 +184,7 @@ mod tests {
     fn listener_works() -> Result<(), Box<dyn std::error::Error>> {
         executor::block_on(async {
             let song_info = Arc::from(Mutex::from(AppState::Connecting));
-            let listener = Listener::new();
+            let listener = SpotifyListener::new();
 
             assert!(listener.connect_signal(song_info).await.is_some());
             Ok(())

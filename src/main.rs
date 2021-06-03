@@ -7,7 +7,7 @@ use style::STYLE;
 mod app_state;
 mod application;
 mod configs;
-mod listener;
+mod spotify_listener;
 mod lyrics;
 mod style;
 mod widgets;
