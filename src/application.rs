@@ -56,7 +56,7 @@ impl LyricsApplication {
      */
     fn connect_spotify_listener_loop(&self, song_info: Arc<Mutex<AppState>>) {
         // This allows aborting it when window is closed
-        let abort_handle = spawn_as_abortable(Self::spotfy_listener_loop(song_info));
+        let abort_handle = spawn_as_abortable(Self::spotify_listener_loop(song_info));
 
         // Terminate the future when window is closed
         self.window.connect_delete_event(move |_, _| {
@@ -66,7 +66,7 @@ impl LyricsApplication {
     }
 
     // Listen to spotify changes. If it changes it retrieves its lyrics as well
-    async fn spotfy_listener_loop(app_state: Arc<Mutex<AppState>>) {
+    async fn spotify_listener_loop(app_state: Arc<Mutex<AppState>>) {
         let mut spotify_listener = SpotifyListener::new();
 
         executor::block_on(spotify_listener.connect_signal_loop(Arc::clone(&app_state)));
