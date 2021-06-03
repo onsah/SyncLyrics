@@ -6,10 +6,12 @@ use style::STYLE;
 
 mod app_state;
 mod application;
+mod configs;
 mod listener;
 mod lyrics;
 mod style;
 mod widgets;
+mod utils;
 
 #[tokio::main]
 async fn main() {

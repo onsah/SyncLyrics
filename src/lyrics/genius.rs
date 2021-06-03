@@ -1,8 +1,10 @@
-use std::usize;
+use std::{time::Duration, usize};
 
-use reqwest::Client;
+use reqwest::{Client, ClientBuilder};
 use scraper::{Html, Selector};
 use serde_derive::{Deserialize, Serialize};
+
+use crate::configs::NETWORK_TIMEOUT_DURATION;
 
 use super::{LyricsResponse, LyricsResult};
 
@@ -60,7 +62,10 @@ pub struct Genius {
 impl Genius {
     pub fn new() -> Self {
         Genius {
-            client: Client::new(),
+            client: ClientBuilder::new()
+                .timeout(NETWORK_TIMEOUT_DURATION)
+                .build()
+                .unwrap(),
         }
     }
 

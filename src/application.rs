@@ -1,14 +1,10 @@
-use futures::{
-    executor,
-    future::{AbortHandle, Abortable},
-    Future,
-};
+use futures::executor;
 use glib::Continue;
 use gtk::{ApplicationWindow, ContainerExt, GtkWindowExt, Inhibit, WidgetExt};
-use std::{borrow::Borrow, ops::Deref, sync::Arc, time::Duration, unreachable};
+use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, time::sleep};
 
-use crate::{app_state::AppState, listener::Listener, lyrics::{LyricsError, genius::Genius}, widgets::{HeaderBar, LyricsView}};
+use crate::{app_state::AppState, listener::Listener, lyrics::{LyricsError, genius::Genius}, utils::spawn_as_abortable, widgets::{HeaderBar, LyricsView}};
 
 pub struct LyricsApplication {
     window: gtk::ApplicationWindow,
@@ -77,24 +73,13 @@ impl LyricsApplication {
      */
     fn song_info_start_listening(&self, song_info: Arc<Mutex<AppState>>) {
         // This allows aborting it when window is closed
-        let abort_handle = Self::spawn_as_abortable(Self::song_info_listener_loop(song_info));
+        let abort_handle = spawn_as_abortable(Self::song_info_listener_loop(song_info));
 
         // Terminate the future when window is closed
         self.window.connect_delete_event(move |_, _| {
             abort_handle.abort();
             Inhibit(false)
         });
-    }
-
-    fn spawn_as_abortable<F: Future + Send + 'static>(fut: F) -> AbortHandle
-    where
-        <F as Future>::Output: Send,
-    {
-        let (abort_handle, abort_registration) = AbortHandle::new_pair();
-
-        tokio::spawn(Abortable::new(fut, abort_registration));
-
-        abort_handle
     }
 
     // Listen to spotify changes
@@ -137,7 +122,7 @@ impl LyricsApplication {
                         },
                         Err(err) => match err {
                             LyricsError::Network(_) => AppState::NetworkFailed,
-                            _ => todo!()
+                            _ => todo!("handle error {:?}", err)
                         }
                     };
 
