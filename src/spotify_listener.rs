@@ -92,13 +92,11 @@ impl SpotifyListener {
         }
     }
 
-    pub async fn connect_signal_loop(&self, app_state: AppStateWrapper) {
-        while !self.connect_signal(Arc::clone(&app_state)).await.is_some() {
-            sleep(Duration::from_millis(250)).await;
-        }
+    pub fn connect_signal_loop(&self, app_state: AppStateWrapper) -> bool {
+        return self.connect_signal(Arc::clone(&app_state)).is_some();
     }
 
-    async fn connect_signal(&self, app_state: AppStateWrapper) -> Option<()> {
+    fn connect_signal(&self, app_state: AppStateWrapper) -> Option<()> {
         let proxy = self.connection.with_proxy(
             "org.mpris.MediaPlayer2.spotify",
             "/org/mpris/MediaPlayer2",
@@ -186,7 +184,7 @@ mod tests {
             let song_info = Arc::from(Mutex::from(AppState::Connecting));
             let listener = SpotifyListener::new();
 
-            assert!(listener.connect_signal(song_info).await.is_some());
+            assert!(listener.connect_signal(song_info).is_some());
             Ok(())
         })
     }

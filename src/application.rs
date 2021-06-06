@@ -69,7 +69,9 @@ impl LyricsApplication {
     async fn spotify_listener_loop(app_state: Arc<Mutex<AppState>>) {
         let mut spotify_listener = SpotifyListener::new();
 
-        executor::block_on(spotify_listener.connect_signal_loop(Arc::clone(&app_state)));
+        while !spotify_listener.connect_signal_loop(Arc::clone(&app_state)) {
+            sleep(Duration::from_secs(500)).await;
+        }
 
         let mut lyrics_fetcher = Genius::new();
 
@@ -111,7 +113,7 @@ impl LyricsApplication {
 
                 } else {
                     // no lyrics to be pulled, can sleep a bit
-                    sleep(Duration::from_millis(150)).await;
+                    sleep(Duration::from_millis(500)).await;
                 }
             }
         }
