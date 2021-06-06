@@ -45,10 +45,12 @@ impl LyricsView {
         let title_label = gtk::Label::new(Some(""));
         title_label.set_halign(gtk::Align::Start);
         title_label.set_margin_start(15);
+        title_label.set_ellipsize(pango::EllipsizeMode::End);
         
         let artist_label = gtk::Label::new(Some(""));
         artist_label.set_halign(gtk::Align::Start);
         artist_label.set_margin_start(15);
+        title_label.set_ellipsize(pango::EllipsizeMode::End);
         
         let text_container = gtk::Box::new(gtk::Orientation::Vertical, 5);
         text_container.set_margin_top(15);

@@ -1812,6 +1812,7 @@ dependencies = [
  "glib",
  "gtk",
  "image",
+ "pango",
  "reqwest",
  "scraper",
  "serde",
