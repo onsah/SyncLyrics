@@ -107,6 +107,11 @@ impl LyricsApplication {
                         },
                         Err(err) => match err {
                             LyricsError::Network(_) => AppState::NetworkFailed,
+                            LyricsError::SongNotFound {
+                                song_name, artist
+                            } => AppState::SongNotFound {
+                                song_name, artist_name: artist
+                            },
                             _ => todo!("handle error {:?}", err)
                         }
                     };
@@ -153,8 +158,13 @@ impl LyricsApplication {
                     self.lyrics_view.song_changed(song_name, artist_name);
                 }
             }
-            AppState::Connecting => (),
             AppState::NetworkFailed => self.lyrics_view.network_failed(),
+            AppState::SongNotFound {
+                song_name, artist_name
+            } => {
+                self.lyrics_view.song_not_found(song_name, artist_name);
+            }
+            AppState::Connecting => (),
         }
 
         self.app_state = new_app_state;

@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use gdk_pixbuf::{Pixbuf, PixbufLoader, PixbufLoaderExt};
 use glib::IsA;
-use gtk::{Adjustment, ContainerExt, Image, ImageExt, Justification, LabelExt, OrientableExt, OverlayExt, SpinnerExt, StackExt, StyleContextExt, Widget, WidgetExt};
+use gtk::{Adjustment, ContainerExt, Image, ImageExt, Justification, LabelExt, OrientableExt, OverlayExt, SpinnerExt, StackExt, StyleContextExt, Widget, WidgetExt, WrapMode};
 use image::ImageOutputFormat;
 
 pub struct LyricsView {
@@ -14,9 +14,11 @@ pub struct LyricsView {
     lyrics_label: gtk::Label,
     spinner: gtk::Spinner,
     stack: gtk::Stack,
+    song_not_found_subtitle_label: gtk::Label,
 }
 
 const NETWORK_ERROR_VIEW_NAME: &'static str = "network_error";
+const SONG_NOT_FOUND_NAME: &'static str = "song_not_found";
 
 impl LyricsView {
 
@@ -86,6 +88,14 @@ impl LyricsView {
         let network_error_view = Self::title_with_subtitle("Network error", "Check your internet connection");
 
         stack.add_named(&network_error_view, NETWORK_ERROR_VIEW_NAME);
+
+        let song_not_found_subtitle_label = gtk::Label:: new(None);
+        let song_not_found_view = Self::title_with_subtitle_from_labels(
+            &gtk::Label::new(Some("Song Not Found")), 
+            &song_not_found_subtitle_label.clone()
+        );
+
+        stack.add_named(&song_not_found_view, SONG_NOT_FOUND_NAME);
         
         // Fetching lyrics screen
         let spinner = gtk::Spinner::new();
@@ -117,6 +127,7 @@ impl LyricsView {
             lyrics_label,
             spinner,
             stack,
+            song_not_found_subtitle_label,
         }
     }
 
@@ -148,20 +159,37 @@ impl LyricsView {
         self.stack.set_visible_child_name(NETWORK_ERROR_VIEW_NAME);
     }
 
+    pub fn song_not_found(&mut self, song_title: &str, artist_name: &str) {
+        self.spinner.stop();
+        self.song_not_found_subtitle_label.set_label(
+            &format!("{} - {} could not be found", song_title, artist_name)  
+        );
+        self.stack.set_visible_child_name(SONG_NOT_FOUND_NAME);
+    }
+
     fn get_not_connected_view() -> impl IsA<Widget> {
         Self::title_with_subtitle("Spotify is not detected", "You should launch Spotify")
     }
 
     fn title_with_subtitle(title: &str, subtitle: &str) -> impl IsA<Widget> {
-        let title = gtk::Label::new(Some(title));
+        Self::title_with_subtitle_from_labels(
+            &gtk::Label::new(Some(title)), 
+            &gtk::Label::new(Some(subtitle))
+        )
+    }
+
+    fn title_with_subtitle_from_labels(title_label: &gtk::Label, subtitle_label: &gtk::Label) -> impl IsA<Widget> {
+        let title = title_label;
         title.set_justify(gtk::Justification::Center);
         title.set_hexpand(true);
         title.get_style_context().add_class("h1");
 
-        let subtitle = gtk::Label::new(Some(subtitle));
+        let subtitle = subtitle_label;
         subtitle.set_justify(gtk::Justification::Center);
         subtitle.set_hexpand(true);
         subtitle.get_style_context().add_class("h2");
+        subtitle.set_line_wrap(true);
+        subtitle.set_max_width_chars(20);
 
         let content = gtk::Grid::new();
         content.set_hexpand(true);
@@ -169,8 +197,8 @@ impl LyricsView {
         content.set_orientation(gtk::Orientation::Vertical);
         content.set_valign(gtk::Align::Center);
 
-        content.add(&title);
-        content.add(&subtitle);
+        content.add(title);
+        content.add(subtitle);
 
         content
     }

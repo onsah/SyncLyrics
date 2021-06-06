@@ -6,7 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 
 use crate::configs::NETWORK_TIMEOUT_DURATION;
 
-use super::{LyricsResponse, LyricsResult};
+use super::{LyricsError, LyricsResponse, LyricsResult};
 
 static BASE_ENDPOINT: &'static str = "https://api.genius.com/";
 static ACCESS_TOKEN: &'static str = env!("ACCESS_TOKEN");
@@ -126,7 +126,13 @@ impl Genius {
             .json()
             .await?;
 
-        Ok(resp.response.hits[0].result.id)
+        match resp.response.hits.get(0) {
+            Some(hit) => Ok(hit.result.id),
+            None => Err(LyricsError::SongNotFound { 
+                song_name: song_title.to_string(), 
+                artist: artist.to_string() 
+            }),
+        }
     }
 
     async fn get_cover_art(&mut self, album: &SongResponseAlbum) -> LyricsResult<Vec<u8>> {

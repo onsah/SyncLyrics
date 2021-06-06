@@ -15,6 +15,10 @@ pub enum AppState {
         lyrics: String,
         cover_art: Option<Vec<u8>>,
     },
+    SongNotFound {
+        song_name: String,
+        artist_name: String,
+    },
     NetworkFailed,
 }
 
