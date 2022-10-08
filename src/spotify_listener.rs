@@ -6,7 +6,6 @@ use dbus::{
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::{sync::Mutex, time::sleep};
 
 use crate::app_state::{AppState, AppStateWrapper};
 
@@ -20,30 +19,27 @@ struct PropertiesChanged {
     pub artist: Option<String>,
 }
 
-/* impl Default for SongInfo {
-    fn default() -> Self {
-        SongInfo {
-            song_title: "untitled".to_string(),
-            artist_name: "unknown".to_string(),
-            pull_lyrics: None,
-        }
-    }
-} */
+struct MaybePropertiesChangged(Option<PropertiesChanged>);
 
-impl arg::ReadAll for PropertiesChanged {
+impl arg::ReadAll for MaybePropertiesChangged {
     fn read<'a>(i: &mut arg::Iter) -> Result<Self, arg::TypeMismatchError> {
         let sender = i.read()?;
         let mut changed_properties: HashMap<String, arg::Variant<Box<dyn arg::RefArg>>> =
             i.read()?;
 
-        let metadata = changed_properties.remove("Metadata").unwrap();
-        let (title, artist) = get_title_and_artist(metadata);
-
-        Ok(PropertiesChanged {
-            sender,
-            title,
-            artist,
-        })
+        Ok(changed_properties.remove("Metadata").map(|metadata| {
+            let (title, artist) = get_title_and_artist(metadata);
+    
+            match (title, artist) {
+                (Some(title), Some(artist)) =>
+                    MaybePropertiesChangged(Some(PropertiesChanged{
+                        sender,
+                        title: Some(title),
+                        artist: Some(artist),
+                    })),
+                _ => MaybePropertiesChangged(None)
+            }
+        }).unwrap_or(MaybePropertiesChangged(None)))
     }
 }
 
@@ -80,7 +76,7 @@ fn get_title_and_artist(
     (title, artist)
 }
 
-impl dbus::message::SignalArgs for PropertiesChanged {
+impl dbus::message::SignalArgs for MaybePropertiesChangged {
     const NAME: &'static str = "PropertiesChanged";
     const INTERFACE: &'static str = "org.freedesktop.DBus.Properties";
 }
@@ -129,18 +125,25 @@ impl SpotifyListener {
                 {
                     let app_state = Arc::clone(&app_state);
                     let _id = proxy.match_signal(
-                        move |p: PropertiesChanged, _: &Connection, _: &Message| {
-                            println!("{:#?} - {:#?}", p.title, p.artist);
-                            match (p.title, p.artist) {
-                                (Some(song_title), Some(artist_name)) => match app_state.try_lock()
-                                {
-                                    Ok(mut guard) => {
-                                        Self::set_if_valid(&mut guard, &song_title, &artist_name);
-                                    }
-                                    _ => (),
-                                },
-                                _ => (),
+                        move |p: MaybePropertiesChangged, _: &Connection, _: &Message| {
+                            match p.0 {
+                                Some(PropertiesChanged { title, artist, .. }) =>
+                                    {
+                                        println!("{:#?} - {:#?}", title, artist);
+                                        match (title, artist) {
+                                            (Some(song_title), Some(artist_name)) => match app_state.try_lock()
+                                            {
+                                                Ok(mut guard) => {
+                                                    Self::set_if_valid(&mut guard, &song_title, &artist_name);
+                                                }
+                                                _ => (),
+                                            },
+                                            _ => (),
+                                        }
+                                    },
+                                None => println!("No song change"),
                             }
+                            
                             true
                         },
                     );
@@ -175,6 +178,7 @@ impl SpotifyListener {
 #[cfg(test)]
 mod tests {
     use futures::executor;
+    use tokio::sync::Mutex;
 
     use super::*;
 
