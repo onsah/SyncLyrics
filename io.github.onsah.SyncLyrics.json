@@ -1,13 +1,13 @@
 {
     "app-id": "io.github.onsah.SyncLyrics",
     "command": "com.github.onsah.SyncLyrics",
-    "runtime": "org.freedesktop.Platform",
-    "sdk": "org.freedesktop.Sdk",
+    "runtime": "org.gnome.Platform",
+    "runtime-version": "42",
+    "sdk": "org.gnome.Sdk",
     "rename-desktop-file": "com.github.onsah.SyncLyrics.desktop",
     "sdk-extensions": [
         "org.freedesktop.Sdk.Extension.rust-stable"
     ],
-    "runtime-version": "20.08",
     "separate-locales": false,
     "cleanup": [
         "/cache",
@@ -75,17 +75,6 @@
                     "type": "archive",
                     "url": "https://download.gnome.org/sources/libgee/0.20/libgee-0.20.3.tar.xz",
                     "sha256": "d0b5edefc88cbca5f1709d19fa62aef490922c6577a14ac4e7b085507911a5de"
-                }
-            ]
-        },
-        {
-            "name": "elementary-theme",
-            "buildsystem": "meson",
-            "sources": [
-                {
-                    "type": "archive",
-                    "url": "https://github.com/elementary/stylesheet/archive/5.4.2.tar.gz",
-                    "sha256": "3bc37723daf4ce0b7c9ce4c125ef0055affe8d6654981388ec87d4a23a1ae0ec"
                 }
             ]
         },
