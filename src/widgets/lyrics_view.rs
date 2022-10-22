@@ -234,21 +234,11 @@ impl LyricsView {
     }
 
     fn set_cover_art(&mut self, cover_art: &[u8]) {
-        // Cover image
-        /* let loader = gdk_pixbuf::PixbufLoader::new();
-        loader.set_size(Self::COVER_IMAGE_SIZE, Self::COVER_IMAGE_SIZE);
-        loader.write(cover_art).unwrap();
-        loader.close().unwrap();
-
-        if let Some(pixbuf) = loader.get_pixbuf() {
-            self.cover_image.set_from_pixbuf(Some(&pixbuf));
-        } */
         self.cover_image.set_from_pixbuf(Some(&Self::raw_to_pixbuf(cover_art, Self::COVER_IMAGE_SIZE, Self::COVER_IMAGE_SIZE)));
 
         // Background
         let img = image::load_from_memory(cover_art).unwrap()
-            .thumbnail(800, 800);
-            // .crop(0, 150 - 45, 300, 110);
+            .thumbnail(500, 500);
 
         let img = img.blur(4.0);
 
