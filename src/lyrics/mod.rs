@@ -23,6 +23,7 @@ pub enum LyricsError {
     #[error("Network error: {0}")]
     Network(#[from] reqwest::Error),
     #[error("Spotify is not detected")]
+    #[allow(dead_code)]
     SpotifyClosed,
     #[error("Song {song_name} by {artist} is not found")]
     SongNotFound { song_name: String, artist: String },

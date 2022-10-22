@@ -1,7 +1,8 @@
-use futures::executor;
-use glib::Continue;
-use gtk::{ApplicationWindow, ContainerExt, GtkWindowExt, Inhibit, WidgetExt};
+use gdk::prelude::ActionGroupExt;
+use glib::{Continue};
+use gtk::{ApplicationWindow};
 use std::{sync::Arc, time::Duration};
+use gtk::prelude::{GtkWindowExt, WidgetExt};
 use tokio::{sync::Mutex, time::sleep};
 
 use crate::{app_state::AppState, spotify_listener::SpotifyListener, lyrics::{LyricsError, genius::Genius}, utils::spawn_as_abortable, widgets::{HeaderBar, LyricsView}};
@@ -17,6 +18,8 @@ impl LyricsApplication {
     pub fn new(app: &gtk::Application) -> Self {
         let window = ApplicationWindow::new(app);
 
+        window.present();
+
         let mut app = LyricsApplication {
             window: window.clone(),
             headerbar: HeaderBar::new(window),
@@ -30,17 +33,15 @@ impl LyricsApplication {
     }
 
     pub fn build_ui(&mut self) {
-        self.window.set_border_width(0);
-        self.window.set_position(gtk::WindowPosition::Center);
+        // self.window.set_border_width(0);
+        // self.window.set_position(gtk::WinowPosition::Center);
         self.window.set_resizable(false);
         self.window.set_hexpand(false);
         self.window.set_vexpand(false);
 
         self.window.set_titlebar(Some(&self.headerbar.container));
 
-        self.window.add(self.lyrics_view.as_widget());
-
-        self.window.show_all();
+        self.window.set_child(Some(self.lyrics_view.as_widget()));
     }
 
     pub fn mount_listener(self) {
@@ -59,9 +60,8 @@ impl LyricsApplication {
         let abort_handle = spawn_as_abortable(Self::spotify_listener_loop(song_info));
 
         // Terminate the future when window is closed
-        self.window.connect_delete_event(move |_, _| {
+        self.window.connect_action_removed(None, move |_, _| {
             abort_handle.abort();
-            Inhibit(false)
         });
     }
 
@@ -129,7 +129,7 @@ impl LyricsApplication {
      * Can't make async because gtk widgets are not Send
      */
      fn connect_ui_updater_loop(mut self, song_info: Arc<Mutex<AppState>>) {
-        glib::timeout_add_local(50, move || {
+        glib::timeout_add_local(Duration::from_millis(50), move || {
             match song_info.try_lock() {
                 Ok(song_info) => {
                     self.update_ui((*song_info).clone());

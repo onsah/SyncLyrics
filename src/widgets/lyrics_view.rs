@@ -1,8 +1,11 @@
-use std::io::Cursor;
-
-use gdk_pixbuf::{Pixbuf, PixbufLoader, PixbufLoaderExt};
+use gdk::gdk_pixbuf::{Pixbuf, PixbufLoader};
+use gdk::prelude::PixbufLoaderExt;
+use gdk::pango::EllipsizeMode;
 use glib::IsA;
-use gtk::{Adjustment, ContainerExt, Image, ImageExt, Justification, LabelExt, OrientableExt, OverlayExt, SpinnerExt, StackExt, StyleContextExt, Widget, WidgetExt, WrapMode};
+
+use gtk::prelude::{BoxExt};
+use gtk::traits::{WidgetExt, StyleContextExt, OrientableExt, GridExt};
+use gtk::{Widget, IconSize};
 use image::ImageOutputFormat;
 
 pub struct LyricsView {
@@ -10,7 +13,7 @@ pub struct LyricsView {
     title_label: gtk::Label,
     artist_label: gtk::Label,
     cover_image: gtk::Image,
-    background_image: gtk::Image,
+    background_image: gtk::Picture,
     lyrics_label: gtk::Label,
     spinner: gtk::Spinner,
     stack: gtk::Stack,
@@ -27,10 +30,14 @@ impl LyricsView {
 
     pub fn new() -> Self {
         let top_overlay = gtk::Overlay::new();
-        top_overlay.set_property_height_request(90);
+        top_overlay.set_hexpand(true);
+        top_overlay.set_margin_top(0);
+        top_overlay.set_height_request(90);
         
-        let background_image = gtk::Image::new();
+        let background_image = gtk::Picture::new();
         background_image.set_visible(false);
+        background_image.set_margin_start(0);
+        background_image.set_margin_end(0);
         background_image.set_opacity(0.6);
 
         let top_container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
@@ -38,27 +45,28 @@ impl LyricsView {
         top_container.set_margin_end(15);
 
         let cover_image = gtk::Image::new();
-        cover_image.set_from_icon_name(Some(Self::NO_COVER_ICON_NAME), gtk::IconSize::Dialog);
+        cover_image.set_from_icon_name(Some(Self::NO_COVER_ICON_NAME));
+        cover_image.set_icon_size(IconSize::Normal);
         cover_image.set_size_request(Self::COVER_IMAGE_SIZE, Self::COVER_IMAGE_SIZE);
-        top_container.add(&cover_image);
+        top_container.append(&cover_image);
 
         let title_label = gtk::Label::new(Some(""));
         title_label.set_halign(gtk::Align::Start);
         title_label.set_margin_start(15);
-        title_label.set_ellipsize(pango::EllipsizeMode::End);
+        title_label.set_ellipsize(EllipsizeMode::End);
         
         let artist_label = gtk::Label::new(Some(""));
         artist_label.set_halign(gtk::Align::Start);
         artist_label.set_margin_start(15);
-        title_label.set_ellipsize(pango::EllipsizeMode::End);
+        title_label.set_ellipsize(EllipsizeMode::End);
         
         let text_container = gtk::Box::new(gtk::Orientation::Vertical, 5);
         text_container.set_margin_top(15);
 
-        text_container.add(&title_label);
-        text_container.add(&artist_label);
+        text_container.append(&title_label);
+        text_container.append(&artist_label);
 
-        top_container.add(&text_container);
+        top_container.append(&text_container);
 
         top_overlay.add_overlay(&background_image);
         top_overlay.add_overlay(&top_container);
@@ -67,7 +75,7 @@ impl LyricsView {
         let lyrics_label = gtk::Label::new(Some(""));
 
         lyrics_label.set_halign(gtk::Align::Start);
-        lyrics_label.set_line_wrap(true);
+        lyrics_label.set_wrap(true);
         lyrics_label.set_margin_start(15);
         lyrics_label.set_margin_end(15);
 
@@ -77,19 +85,19 @@ impl LyricsView {
         let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
         container.set_size_request(400, 500);
         container.set_hexpand(true);
-        container.add(&top_overlay);
-        container.add(&separator);
+        container.append(&top_overlay);
+        container.append(&separator);
 
         let stack = gtk::Stack::new();
 
         // TODO: get welcome screen, etc.
 
         // Open spotify screen
-        stack.add_named(&Self::get_not_connected_view(), "connecting");
+        stack.add_named(&Self::get_not_connected_view(), Some("connecting"));
         
         let network_error_view = Self::title_with_subtitle("Network error", "Check your internet connection");
 
-        stack.add_named(&network_error_view, NETWORK_ERROR_VIEW_NAME);
+        stack.add_named(&network_error_view, Some(NETWORK_ERROR_VIEW_NAME));
 
         let song_not_found_subtitle_label = gtk::Label:: new(None);
         let song_not_found_view = Self::title_with_subtitle_from_labels(
@@ -97,7 +105,7 @@ impl LyricsView {
             &song_not_found_subtitle_label.clone()
         );
 
-        stack.add_named(&song_not_found_view, SONG_NOT_FOUND_NAME);
+        stack.add_named(&song_not_found_view, Some(SONG_NOT_FOUND_NAME));
         
         // Fetching lyrics screen
         let spinner = gtk::Spinner::new();
@@ -106,19 +114,16 @@ impl LyricsView {
         spinner.set_valign(gtk::Align::Center);
         spinner.stop();
 
-        stack.add_named(&spinner, "spinner");
+        stack.add_named(&spinner, Some("spinner"));
 
         // Lyrics label is scrolled
-        let label_scroller =
-            gtk::ScrolledWindow::new(None as Option<&Adjustment>, None as Option<&Adjustment>);
+        let label_scroller = gtk::ScrolledWindow::new();
         label_scroller.set_vexpand(true);
-        label_scroller.add(&lyrics_label);
+        label_scroller.set_child(Some(&lyrics_label));
 
-        stack.add_named(&label_scroller, "lyrics");
+        stack.add_named(&label_scroller, Some("lyrics"));
 
-        container.add(&stack);
-
-        container.show_all();
+        container.append(&stack);
 
         LyricsView {
             container,
@@ -140,7 +145,7 @@ impl LyricsView {
     pub fn song_changed(&mut self, song_title: &str, artist_name: &str) {
         self.set_song_title(song_title);
         self.set_artist(artist_name);
-        self.cover_image.set_from_icon_name(Some(Self::NO_COVER_ICON_NAME), gtk::IconSize::Dialog);
+        self.cover_image.set_from_icon_name(Some(Self::NO_COVER_ICON_NAME));
         self.background_image.set_visible(false);
 
         self.spinner.start();
@@ -184,13 +189,13 @@ impl LyricsView {
         let title = title_label;
         title.set_justify(gtk::Justification::Center);
         title.set_hexpand(true);
-        title.get_style_context().add_class("h1");
+        title.style_context().add_class("h1");
 
         let subtitle = subtitle_label;
         subtitle.set_justify(gtk::Justification::Center);
         subtitle.set_hexpand(true);
-        subtitle.get_style_context().add_class("h2");
-        subtitle.set_line_wrap(true);
+        subtitle.style_context().add_class("h2");
+        subtitle.set_wrap(true);
         subtitle.set_max_width_chars(20);
 
         let content = gtk::Grid::new();
@@ -199,8 +204,8 @@ impl LyricsView {
         content.set_orientation(gtk::Orientation::Vertical);
         content.set_valign(gtk::Align::Center);
 
-        content.add(title);
-        content.add(subtitle);
+        content.attach(title, 0, 0, 1, 1);
+        content.attach_next_to(subtitle, Some(title), gtk::PositionType::Bottom, 1, 1);
 
         content
     }
@@ -242,7 +247,7 @@ impl LyricsView {
 
         // Background
         let img = image::load_from_memory(cover_art).unwrap()
-            .thumbnail(300, 300);
+            .thumbnail(800, 800);
             // .crop(0, 150 - 45, 300, 110);
 
         let img = img.blur(4.0);
@@ -250,20 +255,23 @@ impl LyricsView {
         let mut buffer = Vec::new();
         img.write_to(&mut buffer, ImageOutputFormat::Png).unwrap();
 
-        let pixbuf = Self::raw_to_pixbuf(&buffer, 450, 450)
-            .new_subpixbuf(0, 180, 450, 110).unwrap();
+        let pixbuf = Self::raw_to_pixbuf(&buffer, 500, 500)
+            .new_subpixbuf(0, 195, 500, 110)
+            .unwrap();
 
-        self.background_image.set_from_pixbuf(Some(&pixbuf));
+        self.background_image.set_pixbuf(Some(&pixbuf));
+        self.background_image.set_hexpand(true);
+        self.background_image.set_vexpand(true);
         self.background_image.set_visible(true);
     }
 
     fn raw_to_pixbuf(buffer: &[u8], width: i32, height: i32) -> Pixbuf {
-        let loader = gdk_pixbuf::PixbufLoader::new();
+        let loader = PixbufLoader::new();
+
         loader.set_size(width, height);
         loader.write(buffer).unwrap();
         loader.close().unwrap();
-
-        loader.get_pixbuf().unwrap()
+        loader.pixbuf().unwrap()
     }
 
     fn escape_markup(text: &str) -> String {

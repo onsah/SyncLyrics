@@ -1,4 +1,4 @@
-use std::{time::Duration, usize};
+use std::{usize};
 
 use reqwest::{Client, ClientBuilder};
 use scraper::{Html, Selector};
