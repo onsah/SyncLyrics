@@ -23,9 +23,10 @@
     "finish-args": [
         "--share=network",
         "--share=ipc",
-        "--socket=x11",
+        "--socket=wayland",
         "--socket=fallback-x11",
-        "--socket=session-bus"
+        "--socket=session-bus",
+        "--device=dri"
     ],
     "build-options": {
         "append-path": "/usr/lib/sdk/rust-stable/bin",
