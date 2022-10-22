@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gtk = { version = "0.4.6", package = "gtk4" }
+gtk = { version = "=0.4.6", package = "gtk4" }
 glib = "^0"
 gio = "^0"
 gdk = "^0"
@@ -24,3 +24,4 @@ scraper = "0.12.0"
 thiserror = "1.0.25"
 pango = "0.9.1"
 openssl = { version = "0.10", features = ["vendored"] }
+adw = { version = "=0.1.1", package = "libadwaita" }

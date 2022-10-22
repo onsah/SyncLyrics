@@ -1,18 +1,15 @@
-use glib::{IsA, ObjectExt};
+use gdk::prelude::{IsA};
 use gtk::{
-    Align, Image, Switch, ToggleButton,
+    Align, Image, ToggleButton,
     Widget, Label,
 };
-use gtk::prelude::{ButtonExt, GtkWindowExt, WidgetExt, BoxExt};
+use gtk::prelude::{ButtonExt, GtkWindowExt, WidgetExt};
 
 pub struct HeaderBar {
     pub container: gtk::HeaderBar,
 }
 
 impl HeaderBar {
-    const LIGHT_ICON_NAME: &'static str = "display-brightness-symbolic";
-    const DARK_ICON_NAME: &'static str = "weather-clear-night-symbolic";
-
     pub fn new(window: impl GtkWindowExt) -> Self {
         let headerbar = gtk::HeaderBar::new();
 
@@ -21,7 +18,7 @@ impl HeaderBar {
 
         headerbar.pack_start(&Self::create_pin_toggle(window));
 
-        headerbar.pack_end(&Self::create_switch());
+        // headerbar.pack_end(&Self::create_switch(style_manager.clone()));
         headerbar.set_widget_name("headerbar");
 
         HeaderBar {
@@ -49,7 +46,11 @@ impl HeaderBar {
         toggle
     }
 
-    fn create_switch() -> impl IsA<Widget> {
+    // TODO: Add color switch option in settings with 3 options:
+    // 1. Default
+    // 2. Dark
+    // 3. Light
+    /* fn create_switch(style_manager: adw::StyleManager) -> impl IsA<Widget> {
         let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 5);
         hbox.set_margin_end(10);
 
@@ -65,22 +66,18 @@ impl HeaderBar {
         switch.set_hexpand(false);
         switch.set_valign(Align::Center);
 
-        let settings = gtk::Settings::default().unwrap();
-
-        settings
-            .bind_property("gtk_application_prefer_dark_theme", &switch, "active")
-            .flags(
-                glib::BindingFlags::DEFAULT
-                    | glib::BindingFlags::SYNC_CREATE
-                    | glib::BindingFlags::BIDIRECTIONAL
-                    | glib::BindingFlags::INVERT_BOOLEAN,
-            )
-            .build();
+        switch.connect_state_set(move |_, enabled| {
+            style_manager.set_color_scheme(match enabled {
+                true => ColorScheme::PreferLight,
+                false => ColorScheme::PreferDark,
+            });
+            Inhibit(false)
+        });
 
         hbox.append(&dark_icon);
         hbox.append(&switch);
         hbox.append(&light_icon);
 
         hbox
-    }
+    } */
 }

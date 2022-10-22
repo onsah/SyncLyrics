@@ -1,5 +1,5 @@
 use application::LyricsApplication;
-use gio::prelude::*;
+use gdk::{prelude::{ApplicationExt, ApplicationExtManual}, gio::ApplicationFlags};
 
 mod app_state;
 mod application;
@@ -11,9 +11,9 @@ mod utils;
 
 #[tokio::main]
 async fn main() {
-    let application = gtk::Application::new(
+    let application = adw::Application::new(
         Some("com.github.onsah.sync-lyrics"),
-        gio::ApplicationFlags::empty(),
+        ApplicationFlags::empty(),
     );
 
     application.connect_activate(|app| {

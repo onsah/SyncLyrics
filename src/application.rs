@@ -15,7 +15,7 @@ pub struct LyricsApplication {
 }
 
 impl LyricsApplication {
-    pub fn new(app: &gtk::Application) -> Self {
+    pub fn new(app: &adw::Application) -> Self {
         let window = ApplicationWindow::new(app);
 
         window.present();
