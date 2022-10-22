@@ -14,6 +14,7 @@ pub struct SpotifyListener {
 }
 
 struct PropertiesChanged {
+    #[allow(dead_code)]
     pub sender: String,
     pub title: Option<String>,
     pub artist: Option<String>,
