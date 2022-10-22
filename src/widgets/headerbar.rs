@@ -1,4 +1,5 @@
-use glib::{IsA, ObjectExt};
+use gdk::glib::BindingFlags;
+use gdk::prelude::{IsA, ObjectExt};
 use gtk::{
     Align, Image, Switch, ToggleButton,
     Widget, Label,
@@ -70,10 +71,10 @@ impl HeaderBar {
         settings
             .bind_property("gtk_application_prefer_dark_theme", &switch, "active")
             .flags(
-                glib::BindingFlags::DEFAULT
-                    | glib::BindingFlags::SYNC_CREATE
-                    | glib::BindingFlags::BIDIRECTIONAL
-                    | glib::BindingFlags::INVERT_BOOLEAN,
+                BindingFlags::DEFAULT
+                    | BindingFlags::SYNC_CREATE
+                    | BindingFlags::BIDIRECTIONAL
+                    | BindingFlags::INVERT_BOOLEAN,
             )
             .build();
 

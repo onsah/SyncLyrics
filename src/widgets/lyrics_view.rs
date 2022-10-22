@@ -1,7 +1,6 @@
 use gdk::gdk_pixbuf::{Pixbuf, PixbufLoader};
-use gdk::prelude::PixbufLoaderExt;
+use gdk::prelude::{PixbufLoaderExt, IsA};
 use gdk::pango::EllipsizeMode;
-use glib::IsA;
 
 use gtk::prelude::{BoxExt};
 use gtk::traits::{WidgetExt, StyleContextExt, OrientableExt, GridExt};
