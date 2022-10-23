@@ -12,10 +12,13 @@ pub enum AppState {
         lyrics: String,
         cover_art: Option<Vec<u8>>,
     },
+    // TODO: Handle those
+    #[allow(unused)]
     SongNotFound {
         song_name: String,
         artist_name: String,
     },
+    #[allow(unused)]
     NetworkFailed,
 }
 

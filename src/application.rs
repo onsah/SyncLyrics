@@ -14,7 +14,7 @@ pub struct LyricsApplication {
 }
 
 impl LyricsApplication {
-    pub fn new(app: &adw::Application) -> Self {
+    pub fn init(app: &adw::Application, ui_event_receiver: Rc<Receiver<UIEvent>>) {
         let window = ApplicationWindow::new(app);
 
         window.present();
@@ -28,7 +28,7 @@ impl LyricsApplication {
 
         app.build_ui();
 
-        app
+        app.init_ui_event_consumer(ui_event_receiver);
     }
 
     pub fn build_ui(&mut self) {
@@ -44,7 +44,7 @@ impl LyricsApplication {
     }
 
     // TODO: Make this not take self
-    pub fn init_ui_event_consumer(mut self, ui_event_receiver: Rc<Receiver<UIEvent>>) {
+    fn init_ui_event_consumer(mut self, ui_event_receiver: Rc<Receiver<UIEvent>>) {
         glib::timeout_add_local(Duration::from_millis(50), move || {
             match ui_event_receiver.try_recv() {
                 Ok(ui_event) => {

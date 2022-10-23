@@ -1,33 +1,22 @@
-use std::{time::Duration, collections::HashMap, thread::{spawn, JoinHandle}};
+use std::{time::Duration, collections::HashMap, thread::spawn};
 use crossbeam_channel::Sender;
 
 use dbus::{blocking::{Connection, stdintf::org_freedesktop_dbus::Properties}, arg::{self, RefArg}, Message};
 
 use super::spotify_event::SpotifyEvent;
 
-pub struct SpotifyEventProducer {
-    join_handle: JoinHandle<()>,
-}
+pub struct SpotifyEventProducer;
 
 impl SpotifyEventProducer {
-    pub fn init(sender: Sender<SpotifyEvent>) -> SpotifyEventProducer {
+    pub fn init(sender: Sender<SpotifyEvent>) {
         let connection = Connection::new_session().expect("Couldn't create connection");
-        let join_handle = spawn(move || {
+        spawn(move || {
             Self::init_spotify_listener(sender, &connection);
 
             loop {
                 connection.process(Duration::from_millis(50)).unwrap();
             }
         });
-
-        SpotifyEventProducer { join_handle }
-    }
-
-    pub fn close(self) {
-        // No need to write anything really thanks to rust :)
-        // But still writing for clarity
-        // By dropping the channel we are closing the channel
-        drop(self.join_handle)
     }
 
     fn init_spotify_listener(

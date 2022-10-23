@@ -14,7 +14,6 @@ mod configs;
 mod spotify;
 mod lyrics;
 mod widgets;
-mod utils;
 mod ui;
 
 #[tokio::main]
@@ -29,7 +28,7 @@ async fn main() {
     let (fl_spotify_event_sender, fl_spotify_event_receiver) = crossbeam_channel::unbounded();
 
     // TODO: Close thread on app close
-    let _spotify_event_producer = SpotifyEventProducer::init(spotify_event_sender);
+    SpotifyEventProducer::init(spotify_event_sender);
 
     let (ui_event_sender, ui_event_receiver) = crossbeam_channel::unbounded();
 
@@ -55,10 +54,7 @@ async fn main() {
     });
 
     application.connect_activate(move |app| {
-        setup_style();
-
-        LyricsApplication::new(app)
-            .init_ui_event_consumer(ui_event_receiver.clone());
+        LyricsApplication::init(app, ui_event_receiver.clone());
     });
 
     application.run();
@@ -87,18 +83,4 @@ fn fetch_lyrics(spotify_event_receiver: Receiver<SpotifyEvent>, ui_event_sender:
             }
         }
     })
-}
-
-fn setup_style() {
-    // css
-    // I am thinking of not using custom css at all.
-    /* let provider = gtk::CssProvider::new();
-    provider.load_from_data(STYLE.as_bytes()).unwrap();
-
-    gtk::StyleContext::add_provider_for_display(
-        // TODO: add gdk4
-        &gdk::Display::default().expect("Error initializing gtk css provider."),
-        &provider,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    ); */
 }
