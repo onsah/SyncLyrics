@@ -2218,6 +2218,7 @@ dependencies = [
 name = "sync_lyrics"
 version = "0.1.0"
 dependencies = [
+ "crossbeam-channel",
  "dbus",
  "futures",
  "gdk",

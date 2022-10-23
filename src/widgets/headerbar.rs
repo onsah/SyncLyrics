@@ -5,6 +5,7 @@ use gtk::{
 };
 use gtk::prelude::{ButtonExt, GtkWindowExt, WidgetExt};
 
+#[derive(Clone)]
 pub struct HeaderBar {
     pub container: gtk::HeaderBar,
 }

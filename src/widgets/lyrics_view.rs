@@ -7,6 +7,7 @@ use gtk::traits::{WidgetExt, StyleContextExt, OrientableExt, GridExt};
 use gtk::{Widget, IconSize};
 use image::ImageOutputFormat;
 
+#[derive(Clone)]
 pub struct LyricsView {
     container: gtk::Box,
     title_label: gtk::Label,

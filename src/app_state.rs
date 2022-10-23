@@ -1,6 +1,3 @@
-use std::sync::Arc;
-
-use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub enum AppState {
@@ -23,13 +20,6 @@ pub enum AppState {
 }
 
 impl AppState {
-    pub fn fetched(&self) -> bool {
-        match self {
-            AppState::LyricsFetched { .. } => true,
-            _ => false
-        }
-    }
-
     pub fn is_different(&self, new_song_name: &str, new_artist_name: &str) -> bool {
         match self {
             AppState::FetchingLyrics {
@@ -45,5 +35,3 @@ impl AppState {
         }
     }
 }
-
-pub type AppStateWrapper = Arc<Mutex<AppState>>;

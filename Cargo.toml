@@ -25,3 +25,4 @@ thiserror = "1.0.25"
 pango = "0.9.1"
 openssl = { version = "0.10", features = ["vendored"] }
 adw = { version = "=0.1.1", package = "libadwaita" }
+crossbeam-channel = "0.5.6"
