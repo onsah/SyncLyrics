@@ -1,5 +1,6 @@
 use std::{usize};
 
+use futures::try_join;
 use reqwest::{Client, ClientBuilder};
 use scraper::{Html, Selector};
 use serde_derive::{Deserialize, Serialize};
@@ -70,24 +71,42 @@ impl Genius {
     }
 
     pub async fn get_lyrics(&mut self, song_title: &str, artist: &str) -> LyricsResult {
-        let song_id = self.request_song_id(song_title, artist).await?;
-        println!("song id received");
-        let song_info = self.request_song_info(song_id).await?;
-        println!("song info received");
-        let song_url = &song_info.url;
-        let cover_art = self.get_cover_art(&song_info.album).await?;
-        println!("cover art received");
+        
+        let song_info = {
+            let song_id = self.request_song_id(song_title, artist).await?;
+            self.request_song_info(song_id).await?
+        };
+        
+        let lyrics_future = {
+            let song_url = &song_info.url;
+            let client = self.client.clone();
+            
+            async move {
+                let html = client
+                    .get(song_url)
+                    .send()
+                    .await?
+                    .text()
+                    .await?;
+    
+                println!("Lyrics fetched");
 
-        // Get the page html
-        let html = self
-            .client
-            .get(song_url)
-            .send()
-            .await?
-            .text()
-            .await?;
+                let lyrics = Genius::extract_lyrics(html);  
+    
+                Ok(lyrics)
+            }
+        };
 
-        let lyrics = Genius::extract_lyrics(html);
+        let cover_art_future = async {
+            let cover_art = self.get_cover_art(&song_info.album).await?;
+            println!("Covert art fetched");
+            Ok::<_, LyricsError>(cover_art)
+        };
+        
+        let (cover_art, lyrics) = try_join!(
+            cover_art_future,
+            lyrics_future
+        )?;
 
         Ok(LyricsResponse {
             track: song_title.into(),
